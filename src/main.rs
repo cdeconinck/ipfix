@@ -8,13 +8,14 @@ fn wait(url: &String) {
     let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
     info!{"Listening on {}", url}
 
-    let mut buf = [0; 10];
+    let mut buf = [0; 1500];
 
     loop {
         info!{"Waiting for data..."}
 
-        let (nb, from) = socket.recv_from(&mut buf).unwrap();
-        info!{"Received {} from {}", nb, from}
+        let (nb_bytes, from) = socket.recv_from(&mut buf).unwrap();
+        let data = &buf[..nb_bytes];
+        info!{"Received {} from {} : {} - ({:02X?})", nb_bytes, from, String::from_utf8_lossy(data), &data}
     }
 
     info!{"Closing UDP socket on {}", url}
