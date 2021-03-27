@@ -23,14 +23,14 @@ fn wait(url: &String) {
 
 fn main() {
     // read config from file
-    let config = settings::load_config();
+    let config = settings::Settings::init().unwrap();
 
     // init the env logger 
-    logger::init(&config.get_str("log_level").unwrap());
+    logger::init(&config.log.level);
     
     warn!{"Starting APP"}
     
-    wait(&config.get_str("listener_host").unwrap());
+    wait(&config.listener.host);
 
     info!{"Closing APP"}
 }
