@@ -1,43 +1,17 @@
-use std::net::UdpSocket;
 use log::{info, warn};
-use std::fmt;
+use std::thread;
+use std::collections::HashMap;
+use std::sync::mpsc::channel;
 
 mod settings;
 mod logger;
+mod entity;
+mod threads;
 
-struct Message {
-    src_addr: String,
-    size: usize,
-    buf : Vec<u8>
-}
-
-impl fmt::Display for Message {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} - {} - {:02X?} - {}", &self.src_addr, self.size, &self.buf, String::from_utf8_lossy(&self.buf))
-    }
-}
-
-
-fn wait(url: &String) {
-    let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
-    info!{"Listening on {}", url}
-
-    let mut buf = [0; 1500];
-
-    loop {
-        info!{"Waiting for data..."}
-        let (nb_bytes, from) = socket.recv_from(&mut buf).unwrap();
-
-        // extract the data into a another array
-        let mut data = vec![0; nb_bytes];
-        &data[..nb_bytes].copy_from_slice(&buf[..nb_bytes]);
-
-        let m = Message { src_addr : from.to_string(), size: nb_bytes,  buf : data};
-        info!{"{}", m};
-    }
-
-    info!{"Closing UDP socket on {}", url}
-    drop(socket)
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum ThreadType {
+    UdpListener,
+    IpfixParser
 }
 
 fn main() {
@@ -46,10 +20,23 @@ fn main() {
 
     // init the env logger 
     logger::init(&config.log.level);
-    
+
     warn!{"Starting APP"}
-    
-    wait(&config.listener.host);
+
+    let mut thread_maps: HashMap<ThreadType,_> = HashMap::new();
+    let (sender, receiver) = channel();
+
+    thread_maps.insert(ThreadType::UdpListener, thread::Builder::new().name("UdpListener".to_string()).spawn(move || {
+        threads::listener::init(&config.listener.host, sender);
+    }));
+
+    thread_maps.insert(ThreadType::IpfixParser,  thread::Builder::new().name("IpfixParser".to_string()).spawn(move || {
+        threads::ipfix_parser::parse(receiver);
+    }));
+
+    for (_, v) in thread_maps {
+        v.unwrap().join().unwrap();
+    }
 
     info!{"Closing APP"}
 }
