@@ -5,6 +5,6 @@ use crate::ipfixmsg::IpfixMsg;
 
 pub fn exporte(receiver: mpsc::Receiver<IpfixMsg>){
     loop {
-        info!("{:?}", receiver.recv().unwrap());
+        info!("{}", receiver.recv().unwrap());
     }
 }
