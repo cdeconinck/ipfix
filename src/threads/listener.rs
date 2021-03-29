@@ -1,27 +1,40 @@
-use std::net::UdpSocket;
-use log::{info};
+use std::net::{UdpSocket, SocketAddr};
+use log::{info, error, debug};
 use std::sync::mpsc;
+use byteorder::{ByteOrder, LittleEndian};
+use core::convert::TryInto;
 
-use crate::entity::udp_message::Message;
+use crate::ipfixmsg::IpfixMsg;
 
-pub fn init(url: &String, sender: mpsc::Sender<Message>) {
+pub fn listen(url: &String, sender: mpsc::Sender<IpfixMsg>) {
     let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
     info!{"Listening on {}", url}
 
     let mut buf = [0; 1500];
 
     loop {
-        info!{"Waiting for data..."}
+        debug!{"Waiting for data..."}
         let (nb_bytes, from) = socket.recv_from(&mut buf).unwrap();
-        info!{"Reiceived Data"}
+        debug!{"Received {} bytes from {}", nb_bytes, from}
 
-        // extract the data into a another array
-        let mut data = vec![0; nb_bytes];
-        &data[..nb_bytes].copy_from_slice(&buf[..nb_bytes]);
-
-        sender.send(Message{src_addr: from.to_string(), size: nb_bytes, buf: data}).unwrap();
+        match parse_msg(from, &buf[..nb_bytes]) {
+            Ok(v) =>  sender.send(v).unwrap(),
+            Err(e) => error!("Failed to parse ipfix msg : {}",  e),
+        }
     }
 
     info!{"Closing UDP socket on {}", url}
     drop(socket)
+}
+
+fn parse_msg(exporter: SocketAddr, data: &[u8]) -> Result<IpfixMsg,String> {
+    let version = LittleEndian::read_u16(&data[0..2]);
+    let version2 = LittleEndian::read_u16(&data[2..4]);
+
+    //let version = u16::from_be_bytes(data[0..2].try_into().unwrap());
+    if version != 5 {
+        return Err(format!("Invalid ipfix version, expected 5, read {} {}", version, version2));
+    }
+
+    Ok(IpfixMsg {..Default::default()})
 }

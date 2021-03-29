@@ -1,6 +1,8 @@
 use std::env;
 use config::{ConfigError, Config, File, Environment};
 use serde_derive::Deserialize;
+use log::LevelFilter;
+use std::str::FromStr;
 
 #[derive(Debug, Deserialize)]
 pub struct Listener {
@@ -38,4 +40,13 @@ impl Settings {
         // freeze the configuration
         s.try_into()
     }
+}
+
+pub fn init_logger(level: &str) {
+    std::env::set_var("RUST_LOG", level);
+
+    let mut logger = env_logger::Builder::new();
+    logger.format_timestamp_millis();
+    logger.filter(None, LevelFilter::from_str(level).unwrap());
+    logger.init();
 }

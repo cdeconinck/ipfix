@@ -3,35 +3,34 @@ use std::thread;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 
-mod settings;
-mod logger;
-mod entity;
+mod utils;
+mod ipfixmsg;
 mod threads;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ThreadType {
-    UdpListener,
-    IpfixParser
+    Listener,
+    Exporter
 }
 
 fn main() {
     // read config from file
-    let config = settings::Settings::init().unwrap();
+    let config = utils::Settings::init().unwrap();
 
     // init the env logger 
-    logger::init(&config.log.level);
+    utils::init_logger(&config.log.level);
 
     warn!{"Starting APP"}
 
     let mut thread_maps: HashMap<ThreadType,_> = HashMap::new();
     let (sender, receiver) = channel();
 
-    thread_maps.insert(ThreadType::UdpListener, thread::Builder::new().name("UdpListener".to_string()).spawn(move || {
-        threads::listener::init(&config.listener.host, sender);
+    thread_maps.insert(ThreadType::Listener, thread::Builder::new().name("UDP1".to_string()).spawn(move || {
+        threads::listener::listen(&config.listener.host, sender);
     }));
 
-    thread_maps.insert(ThreadType::IpfixParser,  thread::Builder::new().name("IpfixParser".to_string()).spawn(move || {
-        threads::ipfix_parser::parse(receiver);
+    thread_maps.insert(ThreadType::Exporter, thread::Builder::new().name("UDP2".to_string()).spawn(move || {
+        threads::exporter::exporte(receiver);
     }));
 
     for (_, v) in thread_maps {
