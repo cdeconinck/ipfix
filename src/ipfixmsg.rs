@@ -46,8 +46,7 @@ impl fmt::Display for IpfixMsg {
 }
 
 //////////// IPFIX HEADER ////////////
-
-#[derive(Debug, Default)]
+#[repr(packed)]
 pub struct IpfixHeader {
     pub version: u16,
     pub uptime: u32,

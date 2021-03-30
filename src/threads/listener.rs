@@ -5,6 +5,8 @@ use std::io::Cursor;
 
 use crate::ipfixmsg::*;
 
+const SIZE_OF_IPFIXHEADER: usize = std::mem::size_of::<IpfixHeader>();
+
 pub fn listen(url: &String, sender: mpsc::Sender<IpfixMsg>) {
     let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
     info!{"Listening on {}", url}
@@ -12,9 +14,14 @@ pub fn listen(url: &String, sender: mpsc::Sender<IpfixMsg>) {
     let mut buf = [0; 1500];
 
     loop {
-        debug!{"Waiting for data..."}
+        debug!("Waiting for data...");
         let (nb_bytes, from) = socket.recv_from(&mut buf).unwrap();
-        debug!{"Received {} bytes from {}", nb_bytes, from}
+        debug!("Received {} bytes from {}", nb_bytes, from);
+
+        if nb_bytes < SIZE_OF_IPFIXHEADER {
+            error!("Data to small for an ipfix message, expected at lest {} bytes", SIZE_OF_IPFIXHEADER);
+            continue;
+        }
 
         match parse_msg(from, &buf[..nb_bytes]) {
             Ok(v) =>  sender.send(v).unwrap(),
