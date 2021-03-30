@@ -1,11 +1,12 @@
 use std::net::{UdpSocket, SocketAddr};
 use log::{info, error, debug};
 use std::sync::mpsc;
-use std::io::Cursor;
+use bincode::Options;
 
 use crate::ipfixmsg::*;
 
 const SIZE_OF_IPFIXHEADER: usize = std::mem::size_of::<IpfixHeader>();
+const SIZE_OF_IPFIXMSG: usize = std::mem::size_of::<IpfixMsg>();
 
 pub fn listen(url: &String, sender: mpsc::Sender<IpfixMsg>) {
     let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
@@ -23,26 +24,31 @@ pub fn listen(url: &String, sender: mpsc::Sender<IpfixMsg>) {
             continue;
         }
 
-        match parse_msg(from, &buf[..nb_bytes]) {
-            Ok(v) =>  sender.send(v).unwrap(),
-            Err(e) => error!("Failed to parse ipfix msg : {}",  e),
+        let header: IpfixHeader = bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .with_big_endian()
+            .deserialize_from(&buf[0..24]).unwrap();
+
+        if header.version != 5 {
+            error!("Invalid ipfix version, expected 5, read {}", header.version);
+            continue;
+        }
+
+        let mut offset :usize = SIZE_OF_IPFIXHEADER;
+        for _ in 0..(header.count -1) {
+            let msg: IpfixMsg = bincode::DefaultOptions::new()
+                .with_fixint_encoding()
+                .allow_trailing_bytes()
+                .with_big_endian()
+                .deserialize_from(&buf[offset..]).unwrap();
+
+            offset += SIZE_OF_IPFIXMSG;
+
+            sender.send(msg).unwrap()
         }
     }
 
     info!{"Closing UDP socket on {}", url};
     drop(socket);
-}
-
-fn parse_msg(exporter: SocketAddr, data: &[u8]) -> Result<IpfixMsg, String> {
-    let mut rdr = Cursor::new(data);
-
-    let header = match IpfixHeader::read(&mut rdr) {
-        Ok(h) => h,
-        Err(e) => return Err(e),
-    };
-
-    debug!("{}", header);
-
-    let msg = IpfixMsg::read(&data[24..]);
-    Ok(msg)
 }

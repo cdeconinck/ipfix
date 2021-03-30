@@ -3,6 +3,9 @@ use std::thread;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
 
+#[macro_use]
+extern crate serde_derive;
+
 mod utils;
 mod ipfixmsg;
 mod threads;
