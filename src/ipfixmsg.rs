@@ -1,6 +1,7 @@
-use byteorder::{ByteOrder, BigEndian};
+use byteorder::{BigEndian, ReadBytesExt, ByteOrder};
 use std::fmt;
 use std::net::Ipv4Addr;
+use std::io::Cursor;
 
 #[derive(Debug, Default)]
 pub struct IpfixMsg {
@@ -41,5 +42,40 @@ impl IpfixMsg {
 impl fmt::Display for IpfixMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.duration)
+    }
+}
+
+//////////// IPFIX HEADER ////////////
+
+#[derive(Debug, Default)]
+pub struct IpfixHeader {
+    pub version: u16,
+    pub uptime: u32,
+    pub timestamp: u64,
+    pub seq_number: u32,
+    pub source_id: u32,
+}
+
+impl IpfixHeader {
+    pub fn read(rdr: &mut Cursor<&[u8]>) -> Result<IpfixHeader, String> {
+        let version = rdr.read_u16::<BigEndian>().unwrap();
+
+        if version != 5 {
+            return Err(format!("Invalid ipfix version, expected 5, read {}", version));
+        }
+        
+        Ok(IpfixHeader {
+            version,
+            uptime: rdr.read_u32::<BigEndian>().unwrap(),
+            timestamp: rdr.read_u64::<BigEndian>().unwrap(),
+            seq_number: rdr.read_u32::<BigEndian>().unwrap(),
+            source_id: rdr.read_u32::<BigEndian>().unwrap(),
+        })
+    }
+}
+
+impl fmt::Display for IpfixHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "version: {}, uptime: {}, timestamp: {}, seq_number: {}, source_id: {}", self.version, self.uptime, self.timestamp, self.seq_number, self.source_id)
     }
 }
