@@ -22,7 +22,7 @@ type map_template_t = HashMap<routeur_template, Vec<ipfix_template_field>>;
 
 pub fn listen(url: &String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
     let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
-    info!{"Listening on {}", url}
+    info!("Listening on {}", url);
 
     let mut buf = [0; 1500];
     let mut template_list: map_template_t = HashMap::new();
@@ -58,7 +58,7 @@ pub fn listen(url: &String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
         }
     }
 
-    info!{"Closing UDP socket on {}", url};
+    info!("Closing UDP socket on {}", url);
     drop(socket);
 }
 
@@ -93,15 +93,15 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
         offset += IPFIX_SET_HEADER_SIZE;
 
         if set.set_id == IPFIX_TEMPATE_SET_ID {
-            info!{"Template Set received from {}", from} // skiping the parsing for now
+            info!("Template Set received from {}", from); // skiping the parsing for now
             offset += (set.length) as usize - IPFIX_SET_HEADER_SIZE;
 
         } else if set.set_id == IPFIX_OPTION_TEMPATE_SET_ID {
-            info!{"Option Template Set received from {}", from}
+            info!("Option Template Set received from {}", from);
             offset += (set.length) as usize - IPFIX_SET_HEADER_SIZE; // skiping the parsing for now
 
         } else if set.set_id >= IPFIX_DATA_SET_ID_MIN {
-            info!{"Data Set received from {}", from}
+            info!("Data Set received from {}", from); // skiping the parsing for now
             offset += (set.length) as usize - IPFIX_SET_HEADER_SIZE;
         }
         else {

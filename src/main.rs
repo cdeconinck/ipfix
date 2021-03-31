@@ -34,7 +34,7 @@ fn main() {
     // init the env logger 
     utils::init_logger(&config.log.level);
 
-    warn!{"Starting APP"}
+    info!("Starting APP");
 
     let mut thread_maps: HashMap<ThreadType,_> = HashMap::new();
     let (sender, receiver) = channel();
@@ -51,5 +51,5 @@ fn main() {
         v.unwrap().join().unwrap();
     }
 
-    info!{"Closing APP"}
+    info!("Closing APP");
 }
