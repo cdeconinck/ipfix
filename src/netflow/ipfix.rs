@@ -1,5 +1,6 @@
 use bincode::Options;
 use std::net::Ipv4Addr;
+use core::convert::TryInto;
 
 use crate::netflow::NetflowMsg;
 
@@ -157,9 +158,27 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub fn read(buf: &[u8]) -> Self {
-        // parsing manuel en se basant sur un template
-        DataSet{..Default::default()}
+    pub fn read(buf: &[u8], template: &Vec<TemplateField>) -> Self {
+		let mut set = DataSet{..Default::default()};
+		let mut offset = 0;
+
+		//TODO trouver un meilleur moyen pour matcher les field_id a l'enum FieldType
+		for field in template {
+			if FieldType::SOURCEIPV4ADDRESS as u16 == field.field_id {
+				set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+			}
+		
+			else if FieldType::DESTINATIONIPV4ADDRESS as u16 == field.field_id {
+				set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+			}
+			else {
+				// skiping this field for now
+			}
+		
+			offset += field.field_length as usize;
+		}
+ 
+		set
     }
 }
 
