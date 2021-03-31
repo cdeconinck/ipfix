@@ -80,6 +80,11 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
     let pdu_list: Vec<Box<dyn NetflowMsg>> = vec!();
 
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE]);
+    // check if the size provied contains all the data
+    if buf_len != header.length as usize {
+        return Err(format!("Mismatch size read from the ipfix header ({}) and the packet size ({})",header.length, buf_len));
+    }
+
     let mut offset = ipfix::HEADER_SIZE;
 
     while offset < header.length as usize {
