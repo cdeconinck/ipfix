@@ -1,7 +1,7 @@
 use log::{info};
 use std::sync::mpsc;
 
-use crate::ipfixmsg::NetflowMsg;
+use crate::netflow::NetflowMsg;
 
 pub fn exporte(receiver: mpsc::Receiver<Box<dyn NetflowMsg>>){
     loop {

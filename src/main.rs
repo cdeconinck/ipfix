@@ -12,7 +12,7 @@ extern crate pretty_assertions;
 extern crate serde_derive;
 
 mod utils;
-mod ipfixmsg;
+mod netflow;
 mod threads;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
