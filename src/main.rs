@@ -1,4 +1,4 @@
-use log::{info, warn};
+use log::{info};
 use std::thread;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
