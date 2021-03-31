@@ -1,9 +1,9 @@
 use log::{info};
 use std::sync::mpsc;
 
-use crate::ipfixmsg::IpfixMsg;
+use crate::ipfixmsg::NetflowMsg;
 
-pub fn exporte(receiver: mpsc::Receiver<Box<dyn IpfixMsg>>){
+pub fn exporte(receiver: mpsc::Receiver<Box<dyn NetflowMsg>>){
     loop {
         let msg = receiver.recv().unwrap();
         info!("{}", msg.print());
