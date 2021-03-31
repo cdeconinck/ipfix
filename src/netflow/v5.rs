@@ -3,14 +3,13 @@ use std::net::Ipv4Addr;
 
 use crate::netflow::NetflowMsg;
 
-pub const NETFLOW_V5_ID: u16 = 5;
-pub const NETFLOW_V5_HEADER_SIZE: usize = std::mem::size_of::<NetflowHeaderV5>();
-pub const NETFLOW_V5_MSG_SIZE: usize = std::mem::size_of::<NetflowMsgV5>();
+pub const VERSION: u16 = 5;
+pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 
 /// HEADER ///
 
 #[derive(Deserialize, Debug)]
-pub struct NetflowHeaderV5 {
+pub struct Header {
     pub version: u16,       // NetFlow export format version number
     pub count: u16,         // Number of flows exported in this packet (1-30)
     pub uptime: u32,        // Current time in milliseconds since the export device booted
@@ -22,7 +21,7 @@ pub struct NetflowHeaderV5 {
     pub sampl_interval: u16 // First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval
 }
 
-impl NetflowHeaderV5 {
+impl Header {
     pub fn read(buf: &[u8]) -> Self {
          bincode::DefaultOptions::new()
             .with_fixint_encoding()
@@ -32,10 +31,11 @@ impl NetflowHeaderV5 {
     }
 }
 
-/// PDU ///
+/// DATA SET ///
+pub const DATA_SET_SIZE: usize = std::mem::size_of::<DataSet>();
 
 #[derive(Deserialize, Debug, Default)]
-pub struct NetflowMsgV5 {
+pub struct DataSet {
     pub src_addr: u32,
     pub dst_addr: u32,
     pub next_hop: u32,
@@ -58,13 +58,13 @@ pub struct NetflowMsgV5 {
     pub pad2: u16,
 }
 
-impl NetflowMsg for NetflowMsgV5 {
+impl NetflowMsg for DataSet {
     fn print(&self) -> String {
         format!("src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.end_time - self.start_time)
     }
 }
 
-impl NetflowMsgV5 {
+impl DataSet {
     pub fn read(buf: &[u8]) -> Self {
          bincode::DefaultOptions::new()
             .with_fixint_encoding()
