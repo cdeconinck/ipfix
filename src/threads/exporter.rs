@@ -3,8 +3,9 @@ use std::sync::mpsc;
 
 use crate::ipfixmsg::IpfixMsg;
 
-pub fn exporte(receiver: mpsc::Receiver<IpfixMsg>){
+pub fn exporte(receiver: mpsc::Receiver<Box<dyn IpfixMsg>>){
     loop {
-        info!("{}", receiver.recv().unwrap());
+        let msg = receiver.recv().unwrap();
+        info!("{}", msg.print());
     }
 }

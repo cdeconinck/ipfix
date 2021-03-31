@@ -1,9 +1,13 @@
 use std::fmt;
 use std::net::Ipv4Addr;
+use bincode::Options;
 
-#[repr(packed)]
+pub trait IpfixMsg : Send {
+    fn print(&self) -> String;
+}
+
 #[derive(Deserialize, Debug, Default)]
-pub struct IpfixMsg {
+pub struct IpfixMsgV5 {
     pub src_addr: u32,
     pub dst_addr: u32,
     pub next_hop: u32,
@@ -26,15 +30,24 @@ pub struct IpfixMsg {
     pub padding2: u16,
 }
 
-impl fmt::Display for IpfixMsg {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.end_time - self.start_time)
+impl IpfixMsg for IpfixMsgV5 {
+    fn print(&self) -> String {
+        format!("src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.end_time - self.start_time)
+    }
+}
+
+impl IpfixMsgV5 {
+    pub fn read(buf: &[u8]) -> Self {
+         bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .with_big_endian()
+            .deserialize_from::<_,Self>(buf).unwrap()
     }
 }
 
 //////////// IPFIX HEADER ////////////
-/// 
-#[repr(packed)]
+
 #[derive(Deserialize, Debug)]
 pub struct IpfixHeader {
     pub version: u16,
@@ -45,8 +58,26 @@ pub struct IpfixHeader {
     pub source_id: u32,
 }
 
+impl IpfixHeader {
+    pub fn read(buf: &[u8]) -> Self {
+         bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .with_big_endian()
+            .deserialize_from::<_,Self>(buf).unwrap()
+    }
+}
+
 impl fmt::Display for IpfixHeader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "version: {}, count: {}, uptime: {}, timestamp: {}, seq_number: {}, source_id: {}", self.version, self.count, self.uptime, self.timestamp, self.seq_number, self.source_id)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test() {
+        assert_eq!(2 + 2, 5);
     }
 }
