@@ -2,6 +2,11 @@ use log::{info, warn};
 use std::thread;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
+use std::process;
+
+#[cfg(test)]
+#[macro_use]
+extern crate pretty_assertions;
 
 #[macro_use]
 extern crate serde_derive;
@@ -18,7 +23,13 @@ pub enum ThreadType {
 
 fn main() {
     // read config from file
-    let config = utils::Settings::init().unwrap();
+    let config = match utils::Settings::init() {
+        Ok(config) => config,
+        Err(e) => {
+            println!("Failed to init the programm config : {}", e);
+            process::exit(0);
+        }
+    };
 
     // init the env logger 
     utils::init_logger(&config.log.level);
