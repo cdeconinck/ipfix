@@ -3,7 +3,8 @@ use std::net::Ipv4Addr;
 
 use crate::netflow::NetflowMsg;
 
-pub static SIZE_OF_IPFIX_HEADER: usize = std::mem::size_of::<IpfixHeader>();
+pub const NETFLOW_IPFIX_ID: u16 = 10;
+pub const IPFIX_HEADER_SIZE: usize = std::mem::size_of::<IpfixHeader>();
 
 /// MSG HEADER ////
 
@@ -54,9 +55,10 @@ from https://tools.ietf.org/html/rfc7011
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-pub static IPFIX_TEMPATE_SET_ID: u16 = 2;
-pub static IPFIX_OPTION_TEMPATE_SET_ID: u16 = 3;
-pub static IPFIX_DATA_SET_ID_MIN: u16 = 256;
+pub const IPFIX_SET_HEADER_SIZE: usize = std::mem::size_of::<IpfixSetHeader>();
+pub const IPFIX_TEMPATE_SET_ID: u16 = 2;
+pub const IPFIX_OPTION_TEMPATE_SET_ID: u16 = 3;
+pub const IPFIX_DATA_SET_ID_MIN: u16 = 256;
 
 #[derive(Deserialize, Debug)]
 pub struct IpfixSetHeader {

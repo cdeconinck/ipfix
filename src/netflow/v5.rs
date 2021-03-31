@@ -3,8 +3,9 @@ use std::net::Ipv4Addr;
 
 use crate::netflow::NetflowMsg;
 
-pub static SIZE_OF_NETFLOW_V5_HEADER: usize = std::mem::size_of::<NetflowHeaderV5>();
-pub static SIZE_OF_NETFLOW_V5_MSG: usize = std::mem::size_of::<NetflowMsgV5>();
+pub const NETFLOW_V5_ID: u16 = 5;
+pub const NETFLOW_V5_HEADER_SIZE: usize = std::mem::size_of::<NetflowHeaderV5>();
+pub const NETFLOW_V5_MSG_SIZE: usize = std::mem::size_of::<NetflowMsgV5>();
 
 /// HEADER ///
 
