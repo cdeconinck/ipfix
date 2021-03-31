@@ -124,7 +124,8 @@ pub const TEMPLATE_FIELD_SIZE: usize = 4;
 
 #[derive(Deserialize, Debug)]
 pub struct TemplateField {
-    pub field_id: u16,
+	// a tester avec #[serde(flatten)]
+    pub field_id: FieldType,
     pub field_length: u16,
 }
 
@@ -162,17 +163,12 @@ impl DataSet {
 		let mut set = DataSet{..Default::default()};
 		let mut offset = 0;
 
-		//TODO trouver un meilleur moyen pour matcher les field_id a l'enum FieldType
 		for field in template {
-			if FieldType::SOURCEIPV4ADDRESS as u16 == field.field_id {
-				set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
-			}
-		
-			else if FieldType::DESTINATIONIPV4ADDRESS as u16 == field.field_id {
-				set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
-			}
-			else {
-				// skiping this field for now
+			match field.field_id {
+				FieldType::SOURCEIPV4ADDRESS => {
+					set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+				},
+				_ => {}
 			}
 		
 			offset += field.field_length as usize;
@@ -193,6 +189,7 @@ impl NetflowMsg for DataSet {
 // http://www.iana.org/assignments/ipfix/ipfix.xml
 
 #[repr(u16)]
+#[derive(Debug, Deserialize)]
 pub enum FieldType {
 	RESERVED = 0,
 	OCTETDELTACOUNT = 1,
