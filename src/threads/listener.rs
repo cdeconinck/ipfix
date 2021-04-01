@@ -3,6 +3,7 @@ use log::{info, error, debug};
 use std::sync::mpsc;
 use core::convert::TryInto;
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use crate::netflow::{v5, ipfix, NetflowMsg};
 
@@ -101,10 +102,12 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
                 offset += ipfix::TEMPLATE_FIELD_SIZE;
             }
 
-            info!("Template Set received from {} : {}", from, template_header) ;
+            let mut field_list_str = String::new();
             for field in &field_list {
-                info!("\t{}", field);
+                write!(field_list_str, "\n\t{:?}", field).unwrap();
             }
+
+            info!("{:?} received from {} {}", template_header, from, field_list_str);
 
             template_list.insert(RouteurTemplate { exporter: from, id: template_header.id }, field_list);
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {

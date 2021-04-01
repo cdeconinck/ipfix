@@ -111,12 +111,6 @@ impl TemplateHeader {
     }
 }
 
-impl fmt::Display for TemplateHeader {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "id: {}, field_count: {}", self.id, self.field_count)
-    }
-}
-
 /// TEMPLATE RECORD FIELD ///
 
 /*
@@ -144,12 +138,6 @@ impl TemplateField {
             .allow_trailing_bytes()
             .with_big_endian()
             .deserialize_from::<_,Self>(buf).unwrap()
-    }
-}
-
-impl fmt::Display for TemplateField {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "id: {:?}, len: {}", self.id, self.length)
     }
 }
 
