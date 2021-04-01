@@ -1,7 +1,9 @@
 use bincode::Options;
 use std::net::Ipv4Addr;
 use core::convert::TryInto;
-use log::{warn};
+use log::{debug};
+use serde_repr::{Serialize_repr, Deserialize_repr};
+use std::fmt;
 
 use crate::netflow::NetflowMsg;
 
@@ -109,6 +111,12 @@ impl TemplateHeader {
     }
 }
 
+impl fmt::Display for TemplateHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "id: {}, field_count: {}", self.id, self.field_count)
+    }
+}
+
 /// TEMPLATE RECORD FIELD ///
 
 /*
@@ -125,7 +133,6 @@ pub const TEMPLATE_FIELD_SIZE: usize = 4;
 
 #[derive(Deserialize, Debug)]
 pub struct TemplateField {
-	// a tester avec #[serde(flatten)]
     pub id: FieldType,
     pub length: u16,
 }
@@ -140,6 +147,11 @@ impl TemplateField {
     }
 }
 
+impl fmt::Display for TemplateField {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "id: {:?}, len: {}", self.id, self.length)
+    }
+}
 
 /// DATA SET ///
 //TODO plutot qu'utiliser une structure avec des champs fixe, il faudrait utiliser une Hashmap<FieldType,Value> et parser tout les fields du template
@@ -157,7 +169,8 @@ pub struct DataSet {
     pub src_port: u16,
     pub dst_port: u16, 
     pub protocol: u8,
-	pub end_reason: u8
+	pub end_reason: u8,
+	pub tos: u8
 }
 
 impl DataSet {
@@ -203,8 +216,11 @@ impl DataSet {
 				FieldType::FLOWENDREASON => {
 					set.end_reason = buf[offset];
 				},
+				FieldType::IPCLASSOFSERVICE => {
+					set.tos = buf[offset];
+				},
 				_ => {
-					warn!("Skipping field {:?} with size {}", field.id, field.length)
+					debug!("Skipping field {:?} with size {}", field.id, field.length);
 				}
 			}
 		
@@ -225,8 +241,8 @@ impl NetflowMsg for DataSet {
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
 
+#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
 #[repr(u16)]
-#[derive(Debug, Deserialize)]
 pub enum FieldType {
 	RESERVED = 0,
 	OCTETDELTACOUNT = 1,

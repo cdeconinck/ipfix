@@ -96,12 +96,16 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
             let template_header = ipfix::TemplateHeader::read(&buf[offset..]);
             offset += ipfix::TEMPLATE_HEADER_SIZE;
 
-            for _ in 1..template_header.field_count {
+            for _ in 0..template_header.field_count {
                 field_list.push(ipfix::TemplateField::read(&buf[offset..]));
                 offset += ipfix::TEMPLATE_FIELD_SIZE;
             }
 
-            info!("Template Set received from {}", from);
+            info!("Template Set received from {} : {}", from, template_header) ;
+            for field in &field_list {
+                info!("\t{}", field);
+            }
+
             template_list.insert(RouteurTemplate { exporter: from, id: template_header.id }, field_list);
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
             info!("Option Template Set received from {}", from);
@@ -119,7 +123,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
             };
 
             offset += (set.length) as usize - ipfix::SET_HEADER_SIZE;
-            info!("Data Set received from {}", from);
+            debug!("Data Set received from {}", from);
         }
         else {
             return Err(format!("Invalide set_id read : {}", set.set_id));
