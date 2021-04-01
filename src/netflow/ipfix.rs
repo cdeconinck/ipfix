@@ -1,6 +1,7 @@
 use bincode::Options;
 use std::net::Ipv4Addr;
 use core::convert::TryInto;
+use log::{warn};
 
 use crate::netflow::NetflowMsg;
 
@@ -125,8 +126,8 @@ pub const TEMPLATE_FIELD_SIZE: usize = 4;
 #[derive(Deserialize, Debug)]
 pub struct TemplateField {
 	// a tester avec #[serde(flatten)]
-    pub field_id: FieldType,
-    pub field_length: u16,
+    pub id: FieldType,
+    pub length: u16,
 }
 
 impl TemplateField {
@@ -141,7 +142,8 @@ impl TemplateField {
 
 
 /// DATA SET ///
-
+//TODO plutot qu'utiliser une structure avec des champs fixe, il faudrait utiliser une Hashmap<FieldType,Value> et parser tout les fields du template
+// et implémenter un getter pour retourner les valeurs en foection des clés
 #[derive(Deserialize, Debug, Default)]
 pub struct DataSet {
     pub src_addr: u32,
@@ -150,12 +152,12 @@ pub struct DataSet {
     pub output_int: u16,
     pub octets: u32,
     pub packets: u32,
-    pub start_time: u32,
-    pub end_time: u32,
+    pub start_time: u64,
+	pub end_time: u64,
     pub src_port: u16,
     pub dst_port: u16, 
     pub protocol: u8,
-    pub tos: u8,
+	pub end_reason: u8
 }
 
 impl DataSet {
@@ -164,14 +166,49 @@ impl DataSet {
 		let mut offset = 0;
 
 		for field in template {
-			match field.field_id {
+			match field.id {
 				FieldType::SOURCEIPV4ADDRESS => {
 					set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
 				},
-				_ => {}
+				FieldType::DESTINATIONIPV4ADDRESS => {
+					set.dst_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+				},
+				FieldType::OCTETDELTACOUNT => {
+					set.octets = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+				},
+				FieldType::PACKETDELTACOUNT => {
+					set.packets = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+				},
+				FieldType::PROTOCOLIDENTIFIER => {
+					set.protocol = buf[offset];
+				},
+				FieldType::SOURCETRANSPORTPORT => {
+					set.src_port = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
+				},
+				FieldType::DESTINATIONTRANSPORTPORT => {
+					set.dst_port = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
+				},
+				FieldType::INGRESSINTERFACE => {
+					set.input_int = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
+				},
+				FieldType::EGRESSINTERFACE => {
+					set.output_int = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
+				},
+				FieldType::FLOWSTARTMILLISECONDS => {
+					set.start_time = u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap());
+				},
+				FieldType::FLOWENDMILLISECONDS => {
+					set.end_time = u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap());
+				},
+				FieldType::FLOWENDREASON => {
+					set.end_reason = buf[offset];
+				},
+				_ => {
+					warn!("Skipping field {:?} with size {}", field.id, field.length)
+				}
 			}
 		
-			offset += field.field_length as usize;
+			offset += field.length as usize;
 		}
  
 		set
