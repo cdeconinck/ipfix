@@ -83,7 +83,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE]);
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
-        return Err(format!("Mismatch size read from the ipfix header ({}) and the packet size ({})",header.length, buf_len));
+        return Err(format!("Mismatch size read from the ipfix header ({:?}) and the packet size ({})", header, buf_len));
     }
 
     let mut offset = ipfix::HEADER_SIZE;
@@ -111,9 +111,23 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
 
             template_list.insert(RouteurTemplate { exporter: from, id: template_header.id }, field_list);
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
-            info!("Option Template Set received from {}", from);
-            
-            offset += (set.length) as usize - ipfix::SET_HEADER_SIZE; // skiping the parsing for now
+            let mut field_list: Vec<ipfix::TemplateField> = vec!();
+            let option_template_header = ipfix::OptionTemplateHeader::read(&buf[offset..]);
+            offset += ipfix::OPTTION_TEMPLATE_HEADER_SIZE;
+
+            for _ in 0..option_template_header.field_count {
+                field_list.push(ipfix::TemplateField::read(&buf[offset..]));
+                offset += ipfix::TEMPLATE_FIELD_SIZE;
+            }
+
+            let mut field_list_str = String::new();
+            for field in &field_list {
+                write!(field_list_str, "\n\t{:?}", field).unwrap();
+            }
+
+            info!("{:?} received from {} {}", option_template_header, from, field_list_str);
+
+            template_list.insert(RouteurTemplate { exporter: from, id: option_template_header.id }, field_list);
         } else if set.set_id >= ipfix::DATA_SET_ID_MIN {
             let key = RouteurTemplate{ exporter: from, id: set.set_id };
             match template_list.get(&key) {
@@ -121,7 +135,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
                     data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template)));
                 },
                 None => {
-                    debug!("No template found for parsing data set from {} with id {}", key.exporter, key.id);
+                    error!("No template found for data set from {} with id {}", key.exporter, key.id);
                 }
             };
 

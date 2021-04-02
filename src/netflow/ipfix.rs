@@ -225,6 +225,40 @@ impl NetflowMsg for DataSet {
     }
 }
 
+
+/// OPTION TEMPLATE HEADER ///
+
+/*
+from https://tools.ietf.org/html/rfc7011
+
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Template ID (> 255)   |         Field Count           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      Scope Field Count        |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
+
+pub const OPTTION_TEMPLATE_HEADER_SIZE: usize = 6;
+
+#[derive(Deserialize, Debug)]
+pub struct OptionTemplateHeader {
+    pub id: u16,					// Options Template id in the range 256 to 65535
+    pub field_count: u16,			// Number of all fields in this Options Template Record, including the Scope Fields
+	pub scope_field_count: u16,		// Number of scope fields in this Options Template Record
+}
+
+impl OptionTemplateHeader {
+    pub fn read(buf: &[u8]) -> Self {
+         bincode::DefaultOptions::new()
+            .with_fixint_encoding()
+            .allow_trailing_bytes()
+            .with_big_endian()
+            .deserialize_from::<_,Self>(buf).unwrap()
+    }
+}
+
 /// IPFIX FIELD TYPE ///
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
@@ -635,4 +669,17 @@ pub enum FieldType {
 	LAYER2FRAMETOTALCOUNT = 431,
 	PSEUDOWIREDESTINATIONIPV4ADDRESS = 432,
 	IGNOREDLAYER2FRAMETOTALCOUNT = 433
+}
+
+
+/// IPFIX END REASON ///
+
+#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
+#[repr(u8)]
+pub enum EndReason {
+	IDLETIMEOUT = 1,
+	ACTIVETIMEOUT = 2,
+	ENDOFFLOWDETECTED = 3,
+	FORCEDEND = 4,
+	LACKOFRESOURCES = 5
 }
