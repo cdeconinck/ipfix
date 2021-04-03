@@ -17,7 +17,7 @@ type MapTemplate = HashMap<RouteurTemplate, Vec<ipfix::TemplateField>>;
 
 pub fn listen(url: String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
     let socket = UdpSocket::bind(&url).expect(&format!("Failed to bind udp socket to {}", &url));
-    info!("Listening on {}", url);
+    info!("Listening for UDP packet on {}", url);
 
     let mut buf = [0; 1500];
     let mut template_list: MapTemplate = HashMap::new();
