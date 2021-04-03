@@ -3,6 +3,8 @@ use std::net::Ipv4Addr;
 use core::convert::TryInto;
 use log::{debug};
 use serde_repr::{Serialize_repr, Deserialize_repr};
+use std::collections::HashMap;
+use std::fmt::Write;
 use std::fmt;
 
 use crate::netflow::NetflowMsg;
@@ -142,70 +144,40 @@ impl TemplateField {
 }
 
 /// DATA SET ///
-//TODO plutot qu'utiliser une structure avec des champs fixe, il faudrait utiliser une Hashmap<FieldType,Value> et parser tout les fields du template
-// et implémenter un getter pour retourner les valeurs en foection des clés
-#[derive(Deserialize, Debug, Default)]
+#[derive(Debug)]
 pub struct DataSet {
-    pub src_addr: u32,
-    pub dst_addr: u32,
-    pub input_int: u16,
-    pub output_int: u16,
-    pub octets: u32,
-    pub packets: u32,
-    pub start_time: u64,
-	pub end_time: u64,
-    pub src_port: u16,
-    pub dst_port: u16, 
-    pub protocol: u8,
-	pub end_reason: u8,
-	pub tos: u8
+	pub fields: HashMap<FieldType, FieldValue>
 }
 
 impl DataSet {
     pub fn read(buf: &[u8], template: &Vec<TemplateField>) -> Self {
-		let mut set = DataSet{..Default::default()};
+		let mut set: DataSet = DataSet{fields: HashMap::new()};
 		let mut offset = 0;
 
 		for field in template {
 			match field.id {
-				FieldType::SOURCEIPV4ADDRESS => {
-					set.src_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
-				},
+				FieldType::SOURCEIPV4ADDRESS |
 				FieldType::DESTINATIONIPV4ADDRESS => {
-					set.dst_addr = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+					set.fields.insert(field.id, FieldValue::IPv4(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
 				},
-				FieldType::OCTETDELTACOUNT => {
-					set.octets = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
-				},
+				FieldType::OCTETDELTACOUNT |
 				FieldType::PACKETDELTACOUNT => {
-					set.packets = u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap());
+					set.fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
 				},
-				FieldType::PROTOCOLIDENTIFIER => {
-					set.protocol = buf[offset];
-				},
-				FieldType::SOURCETRANSPORTPORT => {
-					set.src_port = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
-				},
-				FieldType::DESTINATIONTRANSPORTPORT => {
-					set.dst_port = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
-				},
-				FieldType::INGRESSINTERFACE => {
-					set.input_int = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
-				},
+				FieldType::SOURCETRANSPORTPORT |
+				FieldType::DESTINATIONTRANSPORTPORT |
+				FieldType::INGRESSINTERFACE |
 				FieldType::EGRESSINTERFACE => {
-					set.output_int = u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap());
+					set.fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())));
 				},
-				FieldType::FLOWSTARTMILLISECONDS => {
-					set.start_time = u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap());
-				},
+				FieldType::FLOWSTARTMILLISECONDS |
 				FieldType::FLOWENDMILLISECONDS => {
-					set.end_time = u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap());
+					set.fields.insert(field.id, FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())));
 				},
-				FieldType::FLOWENDREASON => {
-					set.end_reason = buf[offset];
-				},
-				FieldType::IPCLASSOFSERVICE => {
-					set.tos = buf[offset];
+				FieldType::PROTOCOLIDENTIFIER |
+				FieldType::FLOWENDREASON |
+				FieldType::IPCLASSOFSERVICE=> {
+					set.fields.insert(field.id, FieldValue::U8(buf[offset]));
 				},
 				_ => {
 					debug!("Skipping field {:?} with size {}", field.id, field.length);
@@ -221,7 +193,11 @@ impl DataSet {
 
 impl NetflowMsg for DataSet {
     fn print(&self) -> String {
-        format!("src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.end_time - self.start_time)
+		let mut output = String::new();
+		for (ftype, fvalue) in self.fields.iter() {
+			write!(output, "{:?}: {}, ", ftype, fvalue).unwrap();
+		}
+		output
     }
 }
 
@@ -263,7 +239,7 @@ impl OptionTemplateHeader {
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
 
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
+#[derive(Serialize_repr, Deserialize_repr, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]
 #[repr(u16)]
 pub enum FieldType {
 	RESERVED = 0,
@@ -671,6 +647,26 @@ pub enum FieldType {
 	IGNOREDLAYER2FRAMETOTALCOUNT = 433
 }
 
+#[derive(Debug)]
+pub enum FieldValue {
+	U8(u8),
+	U16(u16),
+	U32(u32),
+	U64(u64),
+	IPv4(u32)
+}
+
+impl fmt::Display for FieldValue {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+			FieldValue::U8(v) => v.fmt(f),
+			FieldValue::U16(v) => v.fmt(f),
+			FieldValue::U32(v) => v.fmt(f),
+			FieldValue::U64(v) => v.fmt(f),
+			FieldValue::IPv4(v) => Ipv4Addr::from(*v).fmt(f),
+       }
+    }
+}
 
 /// IPFIX END REASON ///
 
