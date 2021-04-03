@@ -15,8 +15,8 @@ struct RouteurTemplate {
 
 type MapTemplate = HashMap<RouteurTemplate, Vec<ipfix::TemplateField>>;
 
-pub fn listen(url: &String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
-    let socket = UdpSocket::bind(url).expect(&format!("Failed to bind udp socket to {}", url));
+pub fn listen(url: String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
+    let socket = UdpSocket::bind(&url).expect(&format!("Failed to bind udp socket to {}", &url));
     info!("Listening on {}", url);
 
     let mut buf = [0; 1500];
@@ -52,9 +52,6 @@ pub fn listen(url: &String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
             Err(e) => error!("Error while parsing ipfix msg: {}", e)
         }
     }
-
-    info!("Closing UDP socket on {}", url);
-    drop(socket);
 }
 
 fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, String> {

@@ -41,6 +41,13 @@ fn main() {
         threads::exporter::exporte(receiver);
     }));
 
+    if config.prometheus.enable {
+        let prometheus_listener = config.prometheus.host.clone();
+        thread_list.push(thread::Builder::new().name("Prometheus".to_string()).spawn(move || {
+            threads::prometheus::listen(prometheus_listener);
+        }));
+    }
+
     for t in thread_list {
         t.unwrap().join().unwrap();
     }

@@ -14,9 +14,16 @@ pub struct Log {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Prometheus {
+    pub enable: bool,
+    pub host: String
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Settings {
     pub log: Log,
-    pub listener: Listener
+    pub listener: Listener,
+    pub prometheus: Prometheus
 }
 
 impl Settings {
