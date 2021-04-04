@@ -1,7 +1,7 @@
-use std::env;
-use config::{ConfigError, Config, File, Environment};
-use log::LevelFilter;
+use config::{ConfigError, Config, File};
+use log::{LevelFilter};
 use std::str::FromStr;
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 pub struct Listener {
@@ -27,21 +27,16 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn init() -> Result<Self, ConfigError> {
+    pub fn init(config_file: Option<PathBuf>) -> Result<Self, ConfigError> {
         let mut s = Config::new();
 
-        // Start off by merging in the "default" configuration file
-        s.merge(File::with_name("config/default"))?;
-
-        // Add in the current environment file
-        // Default to 'development' env
-        // Note that this file is _optional_
-        let env = env::var("RUN_MODE").unwrap_or_else(|_| "development".into());
-        s.merge(File::with_name(&format!("config/{}", env)).required(false))?;
-
-        // Add in settings from the environment (with a prefix of APP)
-        // Eg.. `APP_DEBUG=1 ./target/app` would set the `debug` key
-        s.merge(Environment::with_prefix("app"))?;
+        // surcharge the default config with the user config
+        if config_file == None {
+            println!("No config provided, launching the app with the default configuration");
+        }
+        else {
+            s.merge(File::from(config_file.unwrap()))?;
+        }
 
         // freeze the configuration
         s.try_into()

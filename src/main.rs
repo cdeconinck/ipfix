@@ -2,6 +2,8 @@ use log::{info};
 use std::thread;
 use std::sync::mpsc::channel;
 use std::process;
+use structopt::StructOpt;
+use std::path::PathBuf;
 
 #[cfg(test)]
 #[macro_use]
@@ -14,9 +16,19 @@ mod utils;
 mod netflow;
 mod threads;
 
+#[derive(Debug, StructOpt)]
+struct Opts {
+    #[structopt(long = "--cfg")]
+    #[structopt(parse(from_os_str))]
+    cfg: Option<PathBuf>,
+}
+
 fn main() {
-    // read config from file
-    let config = match utils::Settings::init() {
+    let opts = Opts::from_args();
+    println!("{:?}", opts);
+
+    // init the app config
+    let config = match utils::Settings::init(opts.cfg) {
         Ok(config) => config,
         Err(e) => {
             println!("Failed to init the programm config : {}", e);
@@ -24,7 +36,7 @@ fn main() {
         }
     };
 
-    // init the env logger 
+    // init the app logger 
     utils::init_logger(&config.log.level);
 
     info!("Starting APP");
