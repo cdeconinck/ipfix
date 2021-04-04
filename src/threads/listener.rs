@@ -15,7 +15,7 @@ struct RouteurTemplate {
 
 type MapTemplate = HashMap<RouteurTemplate, Vec<ipfix::TemplateField>>;
 
-pub fn listen(url: String, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
+pub fn listen(url: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
     let socket = UdpSocket::bind(&url).expect(&format!("Failed to bind udp socket to {}", &url));
     info!("Listening for UDP packet on {}", url);
 

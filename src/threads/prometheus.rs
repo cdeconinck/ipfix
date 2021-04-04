@@ -1,8 +1,8 @@
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream, SocketAddr};
 use std::io::prelude::*;
 use log::{info};
 
-pub fn listen(url: String) {
+pub fn listen(url: SocketAddr) {
     let listener = TcpListener::bind(&url).unwrap();
     info!("Listening for TCP packet on {}", &url);
 
