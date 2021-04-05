@@ -175,11 +175,11 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub fn read(buf: &[u8], template: &Vec<TemplateField>) -> Self {
+    pub fn read(buf: &[u8], template: &TemplateFieldList) -> Self {
         let mut set: DataSet = DataSet { fields: HashMap::new() };
         let mut offset = 0;
 
-        for field in template {
+        for field in &template.fields {
             match field.id {
                 FieldType::SOURCEIPV4ADDRESS | FieldType::DESTINATIONIPV4ADDRESS => {
                     set.fields.insert(field.id, FieldValue::IPv4(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
@@ -260,6 +260,26 @@ impl OptionTemplateHeader {
     }
 }
 
+pub struct TemplateFieldList {
+    pub from_type: u16,
+    pub fields: Vec<TemplateField>,
+}
+
+impl TemplateFieldList {
+    #[inline]
+    pub fn is_from_template(&self) -> bool {
+        self.from_type == TEMPATE_SET_ID
+    }
+}
+
+impl fmt::Display for TemplateFieldList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        for field in &self.fields {
+            write!(f, "\n\t{:?}", field).unwrap();
+        }
+        write!(f, "")
+    }
+}
 /// IPFIX FIELD TYPE ///
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
