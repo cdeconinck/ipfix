@@ -37,7 +37,7 @@ fn main() {
     // init the app logger 
     utils::init_logger(&opts.log_level);
 
-    info!("Starting APP");
+    info!("Starting App");
 
     let mut thread_list = vec!();
     let (sender, receiver) = channel();
@@ -62,5 +62,5 @@ fn main() {
         t.unwrap().join().unwrap();
     }
 
-    info!("Closing APP");
+    info!("Closing App");
 }

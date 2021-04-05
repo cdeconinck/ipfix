@@ -1,22 +1,20 @@
 use std::net::{TcpListener, TcpStream, SocketAddr};
 use std::io::prelude::*;
-use log::{info};
+use log::{info, error};
 
-pub fn listen(url: SocketAddr) {
-    let listener = TcpListener::bind(&url).unwrap();
-    info!("Listening for TCP packet on {}", &url);
+pub fn listen(addr: SocketAddr) {
+    let listener = TcpListener::bind(&addr).unwrap();
+    info!("Listening for TCP connection on {}", &addr);
 
     for stream in listener.incoming() {
-        let stream = stream.unwrap();
-
-        handle_connection(stream);
+        match stream {
+            Ok(stream) => { handle_connection(stream); }
+            Err(e) => { error!("Connection failed : {}", e); }
+        }
     }
 }
 
 fn handle_connection(mut stream: TcpStream) {
-    let mut buffer = [0; 1024];
-    stream.read(&mut buffer).unwrap();
-
     let contents = "
     <!DOCTYPE html>
 <html lang=\"en\">
