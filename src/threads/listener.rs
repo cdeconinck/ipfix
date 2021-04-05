@@ -55,19 +55,18 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
 }
 
 fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
-    let header = v5::Header::read(&buf[0..v5::HEADER_SIZE]);
+    let header = v5::Header::read(&buf[0..v5::HEADER_SIZE])?;
 
-    // check if the size correspond to our structure
-    let pdu_size = (buf_len - v5::HEADER_SIZE) as u16 / header.count;
-    if pdu_size != v5::DATA_SET_SIZE as u16 {
-        error!("Mismatch pud size, read {} but we expect a size of {} ", pdu_size, v5::HEADER_SIZE);
+    let nb_pdu = (buf_len - v5::HEADER_SIZE) / v5::DATA_SET_SIZE;
+    if nb_pdu != header.count as usize {
+        error!("Mismatch pdu number, we expect {} pdu but the header said {} ", nb_pdu, header.count);
     }
 
-    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = vec![];
+    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu); 
     let mut offset: usize = v5::HEADER_SIZE;
 
-    for _ in 1..header.count {
-        pdu_list.push(Box::new(v5::DataSet::read(&buf[offset..])));
+    for _ in 1..nb_pdu {
+        pdu_list.push(Box::new(v5::DataSet::read(&buf[offset..])?));
         offset += v5::DATA_SET_SIZE;
     }
 
@@ -77,7 +76,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
     let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec![];
 
-    let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE]);
+    let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE])?;
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
         return Err(format!("Mismatch size read from the ipfix header ({:?}) and the packet size ({})", header, buf_len));
@@ -86,16 +85,16 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
     let mut offset = ipfix::HEADER_SIZE;
 
     while offset < header.length as usize {
-        let set = ipfix::SetHeader::read(&buf[offset..]);
+        let set = ipfix::SetHeader::read(&buf[offset..])?;
         offset += ipfix::SET_HEADER_SIZE;
 
         if set.set_id == ipfix::TEMPATE_SET_ID {
             let mut field_list: Vec<ipfix::TemplateField> = vec![];
-            let template_header = ipfix::TemplateHeader::read(&buf[offset..]);
+            let template_header = ipfix::TemplateHeader::read(&buf[offset..])?;
             offset += ipfix::TEMPLATE_HEADER_SIZE;
 
             for _ in 0..template_header.field_count {
-                field_list.push(ipfix::TemplateField::read(&buf[offset..]));
+                field_list.push(ipfix::TemplateField::read(&buf[offset..])?);
                 offset += ipfix::TEMPLATE_FIELD_SIZE;
             }
 
@@ -115,11 +114,11 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
             );
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
             let mut field_list: Vec<ipfix::TemplateField> = vec![];
-            let option_template_header = ipfix::OptionTemplateHeader::read(&buf[offset..]);
+            let option_template_header = ipfix::OptionTemplateHeader::read(&buf[offset..])?;
             offset += ipfix::OPTTION_TEMPLATE_HEADER_SIZE;
 
             for _ in 0..option_template_header.field_count {
-                field_list.push(ipfix::TemplateField::read(&buf[offset..]));
+                field_list.push(ipfix::TemplateField::read(&buf[offset..])?);
                 offset += ipfix::TEMPLATE_FIELD_SIZE;
             }
 

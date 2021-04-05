@@ -22,13 +22,15 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse v5::Header: {}", e)),
+            }
     }
 }
 
@@ -74,12 +76,14 @@ impl NetflowMsg for DataSet {
 }
 
 impl DataSet {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse v5::DataSet: {}", e)),
+            }
     }
 }

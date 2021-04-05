@@ -40,13 +40,15 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse ipfix::Header: {}", e)),
+            }
     }
 }
 
@@ -74,13 +76,15 @@ pub struct SetHeader {
 }
 
 impl SetHeader {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse ipfix::SetHeader: {}", e)),
+            }
     }
 }
 
@@ -105,13 +109,15 @@ pub struct TemplateHeader {
 }
 
 impl TemplateHeader {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse ipfix::TemplateHeader: {}", e)),
+            }
     }
 }
 
@@ -136,13 +142,15 @@ pub struct TemplateField {
 }
 
 impl TemplateField {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse ipfix::TemplateField: {}", e)),
+            }
     }
 }
 
@@ -220,13 +228,15 @@ pub struct OptionTemplateHeader {
 }
 
 impl OptionTemplateHeader {
-    pub fn read(buf: &[u8]) -> Self {
-        bincode::DefaultOptions::new()
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-            .unwrap()
+            .deserialize_from::<_, Self>(buf) {
+                Ok(v) => Ok(v),
+                Err(e) => Err(format!("Failed to parse ipfix::OptionTemplateHeader: {}", e)),
+            }
     }
 }
 
