@@ -1,9 +1,9 @@
-use log::{info};
-use std::thread;
+use log::info;
+use log::LevelFilter;
+use std::net::SocketAddr;
 use std::sync::mpsc::channel;
+use std::thread;
 use structopt::StructOpt;
-use log::{LevelFilter};
-use std::net::{SocketAddr};
 
 #[cfg(test)]
 #[macro_use]
@@ -12,34 +12,33 @@ extern crate pretty_assertions;
 #[macro_use]
 extern crate serde_derive;
 
-mod utils;
 mod netflow;
 mod threads;
 
 #[derive(Debug, StructOpt)]
 struct Opts {
     /// Log level to use
-    #[structopt(long= "-log", default_value = "Info")]
+    #[structopt(long = "-log", default_value = "Info")]
     log_level: LevelFilter,
 
     /// IP:port for the UDP listener
-    #[structopt(short= "-l", long = "--listener", default_value= "0.0.0.0:9999")]
+    #[structopt(short = "-l", long = "--listener", default_value = "0.0.0.0:9999")]
     listener: SocketAddr,
 
     /// IP:port for the prometheus exporter
-    #[structopt(short= "-e", long = "--exporter")]
+    #[structopt(short = "-e", long = "--exporter")]
     exporter: Option<SocketAddr>,
 }
 
 fn main() {
     let opts = Opts::from_args();
 
-    // init the app logger 
-    utils::init_logger(&opts.log_level);
+    // init the app logger
+    env_logger::Builder::new().format_timestamp_millis().filter(None, opts.log_level).init();
 
     info!("Starting App");
 
-    let mut thread_list = vec!();
+    let mut thread_list = vec![];
     let (sender, receiver) = channel();
 
     let listener_url = opts.listener.clone();

@@ -1,11 +1,11 @@
-use std::net::{UdpSocket, SocketAddr};
-use log::{debug, error, info, trace};
-use std::sync::mpsc;
 use core::convert::TryInto;
+use log::{debug, error, info, trace, warn};
 use std::collections::HashMap;
 use std::fmt::Write;
+use std::net::{SocketAddr, UdpSocket};
+use std::sync::mpsc;
 
-use crate::netflow::{v5, ipfix, NetflowMsg};
+use crate::netflow::{ipfix, v5, NetflowMsg};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct RouteurTemplate {
@@ -49,7 +49,7 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
                     sender.send(msg).unwrap();
                 }
             }
-            Err(e) => error!("Error while parsing netflow msg {} from {} : {}", version, from, e)
+            Err(e) => error!("Error while parsing netflow msg {} from {} : {}", version, from, e),
         }
     }
 }
@@ -63,7 +63,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
         error!("Mismatch pud size, read {} but we expect a size of {} ", pdu_size, v5::HEADER_SIZE);
     }
 
-    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = vec!();
+    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = vec![];
     let mut offset: usize = v5::HEADER_SIZE;
 
     for _ in 1..header.count {
@@ -75,7 +75,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 }
 
 fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
-    let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec!();
+    let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec![];
 
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE]);
     // check if the size provied contains all the data
@@ -90,7 +90,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
         offset += ipfix::SET_HEADER_SIZE;
 
         if set.set_id == ipfix::TEMPATE_SET_ID {
-            let mut field_list: Vec<ipfix::TemplateField> = vec!();
+            let mut field_list: Vec<ipfix::TemplateField> = vec![];
             let template_header = ipfix::TemplateHeader::read(&buf[offset..]);
             offset += ipfix::TEMPLATE_HEADER_SIZE;
 
@@ -106,9 +106,15 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
 
             info!("{:?} received from {} {}", template_header, from, field_list_str);
 
-            template_list.insert(RouteurTemplate { exporter: from, id: template_header.id }, field_list);
+            template_list.insert(
+                RouteurTemplate {
+                    exporter: from,
+                    id: template_header.id,
+                },
+                field_list,
+            );
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
-            let mut field_list: Vec<ipfix::TemplateField> = vec!();
+            let mut field_list: Vec<ipfix::TemplateField> = vec![];
             let option_template_header = ipfix::OptionTemplateHeader::read(&buf[offset..]);
             offset += ipfix::OPTTION_TEMPLATE_HEADER_SIZE;
 
@@ -124,22 +130,23 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
 
             info!("{:?} received from {} {}", option_template_header, from, field_list_str);
 
-            template_list.insert(RouteurTemplate { exporter: from, id: option_template_header.id }, field_list);
-        } else if set.set_id >= ipfix::DATA_SET_ID_MIN {
-            let key = RouteurTemplate{ exporter: from, id: set.set_id };
-            match template_list.get(&key) {
-                Some(template) => {
-                    data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template)));
+            template_list.insert(
+                RouteurTemplate {
+                    exporter: from,
+                    id: option_template_header.id,
                 },
-                None => {
-                    error!("No template found for data set from {} with id {}", key.exporter, key.id);
-                }
+                field_list,
+            );
+        } else if set.set_id >= ipfix::DATA_SET_ID_MIN {
+            let key = RouteurTemplate { exporter: from, id: set.set_id };
+            match template_list.get(&key) {
+                Some(template) => data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template))),
+                None => warn!("No template found for data set from {} with id {}", key.exporter, key.id),
             };
 
             offset += (set.length) as usize - ipfix::SET_HEADER_SIZE;
             debug!("Data Set received from {}", from);
-        }
-        else {
+        } else {
             return Err(format!("Invalide set_id read : {}", set.set_id));
         }
     }

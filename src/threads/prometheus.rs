@@ -1,6 +1,6 @@
-use std::net::{TcpListener, TcpStream, SocketAddr};
+use log::{error, info};
 use std::io::prelude::*;
-use log::{info, error};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 
 pub fn listen(addr: SocketAddr) {
     let listener = TcpListener::bind(&addr).unwrap();
@@ -8,8 +8,8 @@ pub fn listen(addr: SocketAddr) {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(stream) => { handle_connection(stream); }
-            Err(e) => { error!("Connection failed : {}", e); }
+            Ok(stream) => handle_connection(stream),
+            Err(e) => error!("Connection failed : {}", e),
         }
     }
 }

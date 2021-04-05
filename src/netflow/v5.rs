@@ -10,24 +10,25 @@ pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 
 #[derive(Deserialize, Debug)]
 pub struct Header {
-    pub version: u16,       // NetFlow export format version number
-    pub count: u16,         // Number of flows exported in this packet (1-30)
-    pub uptime: u32,        // Current time in milliseconds since the export device booted
-    pub unix_secs: u32,     // Current count of seconds since 0000 UTC 1970
-    pub unix_nsecs: u32,    // Residual nanoseconds since 0000 UTC 1970
-    pub seq_number: u32,    // Sequence counter of total flows seen
-    pub engine_type: u8,    // Type of flow-switching engine
-    pub engine_id: u8,      // Slot number of the flow-switching engine
-    pub sampl_interval: u16 // First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval
+    pub version: u16,        // NetFlow export format version number
+    pub count: u16,          // Number of flows exported in this packet (1-30)
+    pub uptime: u32,         // Current time in milliseconds since the export device booted
+    pub unix_secs: u32,      // Current count of seconds since 0000 UTC 1970
+    pub unix_nsecs: u32,     // Residual nanoseconds since 0000 UTC 1970
+    pub seq_number: u32,     // Sequence counter of total flows seen
+    pub engine_type: u8,     // Type of flow-switching engine
+    pub engine_id: u8,       // Slot number of the flow-switching engine
+    pub sampl_interval: u16, // First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval
 }
 
 impl Header {
     pub fn read(buf: &[u8]) -> Self {
-         bincode::DefaultOptions::new()
+        bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_,Self>(buf).unwrap()
+            .deserialize_from::<_, Self>(buf)
+            .unwrap()
     }
 }
 
@@ -46,7 +47,7 @@ pub struct DataSet {
     pub start_time: u32,
     pub end_time: u32,
     pub src_port: u16,
-    pub dst_port: u16, 
+    pub dst_port: u16,
     pub pad1: u8,
     pub tcp_flag: u8,
     pub protocol: u8,
@@ -60,16 +61,25 @@ pub struct DataSet {
 
 impl NetflowMsg for DataSet {
     fn print(&self) -> String {
-        format!("src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms", Ipv4Addr::from(self.src_addr), Ipv4Addr::from(self.dst_addr), self.octets, self.packets, self.protocol, self.end_time - self.start_time)
+        format!(
+            "src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms",
+            Ipv4Addr::from(self.src_addr),
+            Ipv4Addr::from(self.dst_addr),
+            self.octets,
+            self.packets,
+            self.protocol,
+            self.end_time - self.start_time
+        )
     }
 }
 
 impl DataSet {
     pub fn read(buf: &[u8]) -> Self {
-         bincode::DefaultOptions::new()
+        bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_,Self>(buf).unwrap()
+            .deserialize_from::<_, Self>(buf)
+            .unwrap()
     }
 }
