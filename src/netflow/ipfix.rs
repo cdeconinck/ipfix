@@ -175,7 +175,7 @@ pub struct DataSet {
 }
 
 impl DataSet {
-    pub fn read(buf: &[u8], template: &TemplateFieldList) -> Self {
+    pub fn read(buf: &[u8], template: &Template) -> Self {
         let mut set: DataSet = DataSet { fields: HashMap::new() };
         let mut offset = 0;
 
@@ -260,26 +260,66 @@ impl OptionTemplateHeader {
     }
 }
 
-pub struct TemplateFieldList {
-    pub from_type: u16,
+pub struct Template {
+    pub header: TemplateHeader,
     pub fields: Vec<TemplateField>,
 }
 
-impl TemplateFieldList {
-    #[inline]
-    pub fn is_from_template(&self) -> bool {
-        self.from_type == TEMPATE_SET_ID
+impl Template {
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        let header = TemplateHeader::read(&buf)?;
+        let mut fields: Vec<TemplateField> = vec![];
+        let mut offset = TEMPLATE_HEADER_SIZE;
+
+        for _ in 0..header.field_count {
+            fields.push(TemplateField::read(&buf[offset..])?);
+            offset += TEMPLATE_FIELD_SIZE;
+        }
+
+        Ok(Template { header, fields })
     }
 }
 
-impl fmt::Display for TemplateFieldList {
+impl fmt::Display for Template {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", &self.header).unwrap();
         for field in &self.fields {
             write!(f, "\n\t{:?}", field).unwrap();
         }
         write!(f, "")
     }
 }
+
+pub struct OptionTemplate {
+    pub header: OptionTemplateHeader,
+    pub fields: Vec<TemplateField>,
+}
+
+impl OptionTemplate {
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        let header = OptionTemplateHeader::read(&buf)?;
+        let mut fields: Vec<TemplateField> = vec![];
+        let mut offset = OPTION_TEMPLATE_HEADER_SIZE;
+
+        for _ in 0..header.field_count {
+            fields.push(TemplateField::read(&buf[offset..])?);
+            offset += TEMPLATE_FIELD_SIZE;
+        }
+
+        Ok(OptionTemplate { header, fields })
+    }
+}
+
+impl fmt::Display for OptionTemplate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", &self.header).unwrap();
+        for field in &self.fields {
+            write!(f, "\n\t{:?}", field).unwrap();
+        }
+        write!(f, "")
+    }
+}
+
 /// IPFIX FIELD TYPE ///
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
