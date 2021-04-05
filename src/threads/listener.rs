@@ -1,14 +1,14 @@
 use core::convert::TryInto;
 use log::{debug, error, info, trace};
 use std::collections::HashMap;
-use std::net::{SocketAddr, UdpSocket};
+use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::sync::mpsc;
 
 use crate::netflow::{ipfix, v5, NetflowMsg};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct RouteurTemplate {
-    exporter: SocketAddr,
+    exporter: IpAddr,
     id: u16,
 }
 
@@ -35,16 +35,16 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
 
         // read the first 2 bytes to see what header we need to use
         let version = u16::from_be_bytes(buf[0..2].try_into().unwrap());
-        let result = match version {
+        let msg_list = match version {
             v5::VERSION => parse_v5_msg(&buf[0..rcv_bytes], rcv_bytes),
-            ipfix::VERSION => parse_ipfix_msg(from, &buf[0..rcv_bytes], rcv_bytes, &mut template_list, &mut option_template_list),
+            ipfix::VERSION => parse_ipfix_msg(from.ip(), &buf[0..rcv_bytes], rcv_bytes, &mut template_list, &mut option_template_list),
             _ => {
                 error!("Invalid netflow version in packet from {}, read {}", from, version);
                 continue;
             }
         };
 
-        match result {
+        match msg_list {
             Ok(list) => {
                 for msg in list {
                     sender.send(msg).unwrap();
@@ -74,7 +74,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
     Ok(pdu_list)
 }
 
-fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate, option_template_list: &mut MapOptionTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
+fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate, option_template_list: &mut MapOptionTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE])?;
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
@@ -139,7 +139,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
             return Err(format!("Invalide set_id read : {}", set.set_id));
         }
 
-        offset += (set.length) as usize - ipfix::SET_HEADER_SIZE;
+        offset += set.content_size();
     }
 
     Ok(data_set_list)
