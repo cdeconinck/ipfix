@@ -32,7 +32,7 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
             continue;
         }
 
-        // read the first 2 bytes to see what header we have
+        // read the first 2 bytes to see what header we need to use
         let version = u16::from_be_bytes(buf[0..2].try_into().unwrap());
         let result = match version {
             v5::VERSION => parse_v5_msg(&buf[0..rcv_bytes], rcv_bytes),
@@ -62,10 +62,10 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
         error!("Mismatch pdu number, we expect {} pdu but the header said {} ", nb_pdu, header.count);
     }
 
-    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu); 
+    let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu);
     let mut offset: usize = v5::HEADER_SIZE;
 
-    for _ in 1..nb_pdu {
+    while offset < buf_len {
         pdu_list.push(Box::new(v5::DataSet::read(&buf[offset..])?));
         offset += v5::DATA_SET_SIZE;
     }
@@ -74,8 +74,6 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 }
 
 fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
-    let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec![];
-
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE])?;
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
@@ -83,14 +81,24 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
     }
 
     let mut offset = ipfix::HEADER_SIZE;
+    let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec![];
 
-    while offset < header.length as usize {
+    while offset < buf_len {
         let set = ipfix::SetHeader::read(&buf[offset..])?;
         offset += ipfix::SET_HEADER_SIZE;
 
         if set.set_id == ipfix::TEMPATE_SET_ID {
             let mut field_list: Vec<ipfix::TemplateField> = vec![];
             let template_header = ipfix::TemplateHeader::read(&buf[offset..])?;
+
+            if template_header.content_size() + ipfix::TEMPLATE_FIELD_SIZE != set.content_size() {
+                return Err(format!(
+                    "Mismatch template header size {} and set content size {},",
+                    template_header.content_size() + ipfix::TEMPLATE_FIELD_SIZE,
+                    set.content_size()
+                ));
+            }
+
             offset += ipfix::TEMPLATE_HEADER_SIZE;
 
             for _ in 0..template_header.field_count {
@@ -115,7 +123,16 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
         } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
             let mut field_list: Vec<ipfix::TemplateField> = vec![];
             let option_template_header = ipfix::OptionTemplateHeader::read(&buf[offset..])?;
-            offset += ipfix::OPTTION_TEMPLATE_HEADER_SIZE;
+
+            if option_template_header.content_size() + ipfix::OPTION_TEMPLATE_HEADER_SIZE != set.content_size() {
+                return Err(format!(
+                    "Mismatch option template header size {} and set content size {},",
+                    option_template_header.content_size() + ipfix::OPTION_TEMPLATE_HEADER_SIZE,
+                    set.content_size()
+                ));
+            }
+
+            offset += ipfix::OPTION_TEMPLATE_HEADER_SIZE;
 
             for _ in 0..option_template_header.field_count {
                 field_list.push(ipfix::TemplateField::read(&buf[offset..])?);
@@ -138,6 +155,7 @@ fn parse_ipfix_msg(from: SocketAddr, buf: &[u8], buf_len: usize, template_list: 
             );
         } else if set.set_id >= ipfix::DATA_SET_ID_MIN {
             let key = RouteurTemplate { exporter: from, id: set.set_id };
+
             match template_list.get(&key) {
                 Some(template) => data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template))),
                 None => warn!("No template found for data set from {} with id {}", key.exporter, key.id),

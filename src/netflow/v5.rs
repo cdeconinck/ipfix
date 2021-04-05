@@ -27,10 +27,11 @@ impl Header {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse v5::Header: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse v5::Header: {}", e)),
+        }
     }
 }
 
@@ -81,9 +82,10 @@ impl DataSet {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse v5::DataSet: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse v5::DataSet: {}", e)),
+        }
     }
 }

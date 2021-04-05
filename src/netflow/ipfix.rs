@@ -45,10 +45,11 @@ impl Header {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse ipfix::Header: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse ipfix::Header: {}", e)),
+        }
     }
 }
 
@@ -81,10 +82,16 @@ impl SetHeader {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse ipfix::SetHeader: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse ipfix::SetHeader: {}", e)),
+        }
+    }
+
+    #[inline]
+    pub fn content_size(&self) -> usize {
+        self.length as usize - SET_HEADER_SIZE
     }
 }
 
@@ -114,10 +121,16 @@ impl TemplateHeader {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse ipfix::TemplateHeader: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse ipfix::TemplateHeader: {}", e)),
+        }
+    }
+
+    #[inline]
+    pub fn content_size(&self) -> usize {
+        self.field_count as usize * TEMPLATE_FIELD_SIZE
     }
 }
 
@@ -147,10 +160,11 @@ impl TemplateField {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse ipfix::TemplateField: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse ipfix::TemplateField: {}", e)),
+        }
     }
 }
 
@@ -218,7 +232,7 @@ from https://tools.ietf.org/html/rfc7011
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-pub const OPTTION_TEMPLATE_HEADER_SIZE: usize = 6;
+pub const OPTION_TEMPLATE_HEADER_SIZE: usize = 6;
 
 #[derive(Deserialize, Debug)]
 pub struct OptionTemplateHeader {
@@ -233,10 +247,16 @@ impl OptionTemplateHeader {
             .with_fixint_encoding()
             .allow_trailing_bytes()
             .with_big_endian()
-            .deserialize_from::<_, Self>(buf) {
-                Ok(v) => Ok(v),
-                Err(e) => Err(format!("Failed to parse ipfix::OptionTemplateHeader: {}", e)),
-            }
+            .deserialize_from::<_, Self>(buf)
+        {
+            Ok(v) => Ok(v),
+            Err(e) => Err(format!("Failed to parse ipfix::OptionTemplateHeader: {}", e)),
+        }
+    }
+
+    #[inline]
+    pub fn content_size(&self) -> usize {
+        self.field_count as usize * TEMPLATE_FIELD_SIZE
     }
 }
 
