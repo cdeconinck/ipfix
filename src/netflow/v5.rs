@@ -1,4 +1,5 @@
 use bincode::Options;
+use core::convert::TryInto;
 use std::net::Ipv4Addr;
 
 use crate::netflow::NetflowMsg;
@@ -22,7 +23,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -32,13 +33,26 @@ impl Header {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse v5::Header: {}", e)),
         }
+    }*/
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(Header {
+            version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+            uptime: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
+            unix_secs: u32::from_be_bytes(buf[8..12].try_into().unwrap()),
+            unix_nsecs: u32::from_be_bytes(buf[12..16].try_into().unwrap()),
+            seq_number: u32::from_be_bytes(buf[16..20].try_into().unwrap()),
+            engine_type: buf[20],
+            engine_id: buf[21],
+            sampl_interval: u16::from_be_bytes(buf[22..24].try_into().unwrap()),
+        })
     }
 }
 
 /// DATA SET ///
 pub const DATA_SET_SIZE: usize = std::mem::size_of::<DataSet>();
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug)]
 pub struct DataSet {
     pub src_addr: u32,
     pub dst_addr: u32,
@@ -77,7 +91,7 @@ impl NetflowMsg for DataSet {
 }
 
 impl DataSet {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -87,5 +101,30 @@ impl DataSet {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse v5::DataSet: {}", e)),
         }
+    }*/
+
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(DataSet {
+            src_addr: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
+            dst_addr: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
+            next_hop: u32::from_be_bytes(buf[8..12].try_into().unwrap()),
+            input_int: u16::from_be_bytes(buf[12..14].try_into().unwrap()),
+            output_int: u16::from_be_bytes(buf[14..16].try_into().unwrap()),
+            octets: u32::from_be_bytes(buf[16..20].try_into().unwrap()),
+            packets: u32::from_be_bytes(buf[20..24].try_into().unwrap()),
+            start_time: u32::from_be_bytes(buf[24..28].try_into().unwrap()),
+            end_time: u32::from_be_bytes(buf[28..32].try_into().unwrap()),
+            src_port: u16::from_be_bytes(buf[32..34].try_into().unwrap()),
+            dst_port: u16::from_be_bytes(buf[34..36].try_into().unwrap()),
+            pad1: buf[36],
+            tcp_flag: buf[37],
+            protocol: buf[38],
+            tos: buf[39],
+            src_as: u16::from_be_bytes(buf[40..42].try_into().unwrap()),
+            dst_as: u16::from_be_bytes(buf[42..44].try_into().unwrap()),
+            src_mask: buf[44],
+            dst_mask: buf[45],
+            pad2: u16::from_be_bytes(buf[46..48].try_into().unwrap()),
+        })
     }
 }

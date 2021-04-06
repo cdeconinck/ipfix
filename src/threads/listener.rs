@@ -1,5 +1,5 @@
 use core::convert::TryInto;
-use log::{debug, error, info, trace};
+use log::{error, info, trace};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::sync::mpsc;
@@ -24,7 +24,7 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
     let mut option_template_list: MapOptionTemplate = HashMap::new();
 
     loop {
-        debug!("Waiting for data...");
+        trace!("Waiting for data...");
         let (rcv_bytes, from) = socket.recv_from(&mut buf).expect("Didn't received data");
         trace!("Received {} bytes from {}", rcv_bytes, from);
 

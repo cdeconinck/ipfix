@@ -40,7 +40,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -50,6 +50,16 @@ impl Header {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse ipfix::Header: {}", e)),
         }
+    }*/
+
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(Header {
+            version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+            export_time: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
+            seq_number: u32::from_be_bytes(buf[8..12].try_into().unwrap()),
+            domain_id: u32::from_be_bytes(buf[12..16].try_into().unwrap()),
+        })
     }
 }
 
@@ -77,7 +87,7 @@ pub struct SetHeader {
 }
 
 impl SetHeader {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -87,6 +97,13 @@ impl SetHeader {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse ipfix::SetHeader: {}", e)),
         }
+    }*/
+
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(SetHeader {
+            set_id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+        })
     }
 
     #[inline]
@@ -116,7 +133,7 @@ pub struct TemplateHeader {
 }
 
 impl TemplateHeader {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -126,11 +143,13 @@ impl TemplateHeader {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse ipfix::TemplateHeader: {}", e)),
         }
-    }
+    }*/
 
-    #[inline]
-    pub fn content_size(&self) -> usize {
-        self.field_count as usize * TEMPLATE_FIELD_SIZE
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(TemplateHeader {
+            id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+        })
     }
 }
 
@@ -166,6 +185,13 @@ impl TemplateField {
             Err(e) => Err(format!("Failed to parse ipfix::TemplateField: {}", e)),
         }
     }
+
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(TemplateField {
+            id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+        })
+    }*/
 }
 
 /// DATA SET ///
@@ -242,7 +268,7 @@ pub struct OptionTemplateHeader {
 }
 
 impl OptionTemplateHeader {
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         match bincode::DefaultOptions::new()
             .with_fixint_encoding()
             .allow_trailing_bytes()
@@ -252,6 +278,14 @@ impl OptionTemplateHeader {
             Ok(v) => Ok(v),
             Err(e) => Err(format!("Failed to parse ipfix::OptionTemplateHeader: {}", e)),
         }
+    }*/
+
+    pub fn read(buf: &[u8]) -> Result<Self, String> {
+        Ok(OptionTemplateHeader {
+            id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+            scope_field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+        })
     }
 
     #[inline]
