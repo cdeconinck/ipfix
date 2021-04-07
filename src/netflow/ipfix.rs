@@ -4,12 +4,11 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use num;
-use crate::netflow::NetflowMsg;
+use num_traits::FromPrimitive;
 
+use crate::netflow::NetflowMsg;
 pub const VERSION: u16 = 10;
 pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
-
 /// MSG HEADER ////
 
 /*
@@ -138,7 +137,7 @@ pub struct TemplateField {
 impl TemplateField {
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(TemplateField {
-            id: num::FromPrimitive::from_u16(u16::from_be_bytes(buf[0..2].try_into().unwrap())).unwrap(),
+            id: FromPrimitive::from_u16(u16::from_be_bytes(buf[0..2].try_into().unwrap())).unwrap(),
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
         })
     }
