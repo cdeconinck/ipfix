@@ -1,12 +1,10 @@
-use bincode::Options;
 use core::convert::TryInto;
 use log::debug;
-use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write;
-use std::net::Ipv4Addr;
-
+use std::net::{Ipv4Addr, Ipv6Addr};
+use num;
 use crate::netflow::NetflowMsg;
 
 pub const VERSION: u16 = 10;
@@ -30,7 +28,7 @@ from https://tools.ietf.org/html/rfc7011
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 */
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Header {
     pub version: u16,     // Version of IPFIX to which this Message conforms
     pub length: u16,      // Total length of the IPFIX Message, measured in octets, including Message Header and Set(s).
@@ -40,18 +38,6 @@ pub struct Header {
 }
 
 impl Header {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse ipfix::Header: {}", e)),
-        }
-    }*/
-
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(Header {
             version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
@@ -80,25 +66,13 @@ pub const TEMPATE_SET_ID: u16 = 2;
 pub const OPTION_TEMPATE_SET_ID: u16 = 3;
 pub const DATA_SET_ID_MIN: u16 = 256;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct SetHeader {
     pub set_id: u16, // Identifies the Set.
     pub length: u16, // Total length of the Set, in octets, including the Set Header, all records, and the optional padding
 }
 
 impl SetHeader {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse ipfix::SetHeader: {}", e)),
-        }
-    }*/
-
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(SetHeader {
             set_id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
@@ -126,25 +100,13 @@ from https://tools.ietf.org/html/rfc7011
 
 pub const TEMPLATE_HEADER_SIZE: usize = 4;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct TemplateHeader {
     pub id: u16,          // Each Template Record is given a unique Template ID in the range 256 to 65535
     pub field_count: u16, // Number of fields in this Template Record.
 }
 
 impl TemplateHeader {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse ipfix::TemplateHeader: {}", e)),
-        }
-    }*/
-
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(TemplateHeader {
             id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
@@ -167,7 +129,7 @@ from https://tools.ietf.org/html/rfc7011
 
 pub const TEMPLATE_FIELD_SIZE: usize = 4;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct TemplateField {
     pub id: FieldType,
     pub length: u16,
@@ -175,23 +137,11 @@ pub struct TemplateField {
 
 impl TemplateField {
     pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse ipfix::TemplateField: {}", e)),
-        }
-    }
-
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(TemplateField {
-            id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            id: num::FromPrimitive::from_u16(u16::from_be_bytes(buf[0..2].try_into().unwrap())).unwrap(),
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
         })
-    }*/
+    }
 }
 
 /// DATA SET ///
@@ -207,6 +157,9 @@ impl DataSet {
 
         for field in &template.fields {
             match field.id {
+                FieldType::SOURCEIPV6ADDRESS | FieldType::DESTINATIONIPV6ADDRESS => {
+                    set.fields.insert(field.id, FieldValue::IPv6(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())));
+                }
                 FieldType::SOURCEIPV4ADDRESS | FieldType::DESTINATIONIPV4ADDRESS => {
                     set.fields.insert(field.id, FieldValue::IPv4(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
                 }
@@ -260,7 +213,7 @@ from https://tools.ietf.org/html/rfc7011
 
 pub const OPTION_TEMPLATE_HEADER_SIZE: usize = 6;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct OptionTemplateHeader {
     pub id: u16,                // Options Template id in the range 256 to 65535
     pub field_count: u16,       // Number of all fields in this Options Template Record, including the Scope Fields
@@ -268,23 +221,11 @@ pub struct OptionTemplateHeader {
 }
 
 impl OptionTemplateHeader {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse ipfix::OptionTemplateHeader: {}", e)),
-        }
-    }*/
-
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(OptionTemplateHeader {
             id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
-            scope_field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
+            scope_field_count: u16::from_be_bytes(buf[4..6].try_into().unwrap()),
         })
     }
 
@@ -357,8 +298,7 @@ impl fmt::Display for OptionTemplate {
 /// IPFIX FIELD TYPE ///
 
 // http://www.iana.org/assignments/ipfix/ipfix.xml
-
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]
+#[derive(FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]
 #[repr(u16)]
 pub enum FieldType {
     RESERVED = 0,
@@ -773,6 +713,7 @@ pub enum FieldValue {
     U32(u32),
     U64(u64),
     IPv4(u32),
+    IPv6(u128),
 }
 
 impl fmt::Display for FieldValue {
@@ -783,13 +724,14 @@ impl fmt::Display for FieldValue {
             FieldValue::U32(v) => v.fmt(f),
             FieldValue::U64(v) => v.fmt(f),
             FieldValue::IPv4(v) => Ipv4Addr::from(*v).fmt(f),
+            FieldValue::IPv6(v) => Ipv6Addr::from(*v).fmt(f),
         }
     }
 }
 
 /// IPFIX END REASON ///
 
-#[derive(Serialize_repr, Deserialize_repr, PartialEq, Debug)]
+#[derive(FromPrimitive, PartialEq, Debug)]
 #[repr(u8)]
 pub enum EndReason {
     IDLETIMEOUT = 1,

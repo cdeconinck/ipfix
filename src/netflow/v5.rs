@@ -1,4 +1,3 @@
-use bincode::Options;
 use core::convert::TryInto;
 use std::net::Ipv4Addr;
 
@@ -9,7 +8,7 @@ pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 
 /// HEADER ///
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct Header {
     pub version: u16,        // NetFlow export format version number
     pub count: u16,          // Number of flows exported in this packet (1-30)
@@ -23,17 +22,6 @@ pub struct Header {
 }
 
 impl Header {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse v5::Header: {}", e)),
-        }
-    }*/
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(Header {
             version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
@@ -52,7 +40,7 @@ impl Header {
 /// DATA SET ///
 pub const DATA_SET_SIZE: usize = std::mem::size_of::<DataSet>();
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct DataSet {
     pub src_addr: u32,
     pub dst_addr: u32,
@@ -91,18 +79,6 @@ impl NetflowMsg for DataSet {
 }
 
 impl DataSet {
-    /*pub fn read(buf: &[u8]) -> Result<Self, String> {
-        match bincode::DefaultOptions::new()
-            .with_fixint_encoding()
-            .allow_trailing_bytes()
-            .with_big_endian()
-            .deserialize_from::<_, Self>(buf)
-        {
-            Ok(v) => Ok(v),
-            Err(e) => Err(format!("Failed to parse v5::DataSet: {}", e)),
-        }
-    }*/
-
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(DataSet {
             src_addr: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
