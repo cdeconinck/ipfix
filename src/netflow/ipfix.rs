@@ -1,12 +1,13 @@
 use core::convert::TryInto;
 use log::debug;
+use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use num_traits::FromPrimitive;
 
 use crate::netflow::NetflowMsg;
+
 pub const VERSION: u16 = 10;
 pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 /// MSG HEADER ////
@@ -67,14 +68,14 @@ pub const DATA_SET_ID_MIN: u16 = 256;
 
 #[derive(Debug)]
 pub struct SetHeader {
-    pub set_id: u16, // Identifies the Set.
+    pub id: u16,     // Identifies the Set.
     pub length: u16, // Total length of the Set, in octets, including the Set Header, all records, and the optional padding
 }
 
 impl SetHeader {
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         Ok(SetHeader {
-            set_id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
+            id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
         })
     }
@@ -144,34 +145,64 @@ impl TemplateField {
 }
 
 /// DATA SET ///
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DataSet {
     pub fields: HashMap<FieldType, FieldValue>,
 }
 
+#[rustfmt::skip]
 impl DataSet {
-    pub fn read(buf: &[u8], template: &Template) -> Self {
-        let mut set: DataSet = DataSet { fields: HashMap::new() };
+    pub fn read_from_option_template(buf: &[u8], template: &OptionTemplate) -> Self {
+        DataSet::parse_field(buf, &template.fields)
+    }
+
+    pub fn read_from_template (buf: &[u8], template: &Template) -> Self {
+        DataSet::parse_field(buf, &template.fields)
+    }
+
+    fn parse_field(buf: &[u8], field_list: &Vec<TemplateField>) -> Self {
+        let mut set: DataSet = DataSet { ..Default::default() };
         let mut offset = 0;
 
-        for field in &template.fields {
+        for field in field_list {
             match field.id {
-                FieldType::SOURCEIPV6ADDRESS | FieldType::DESTINATIONIPV6ADDRESS => {
+                FieldType::SOURCEIPV6ADDRESS | 
+                FieldType::DESTINATIONIPV6ADDRESS |
+                FieldType::EXPORTERIPV6ADDRESS  => {
                     set.fields.insert(field.id, FieldValue::IPv6(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())));
                 }
-                FieldType::SOURCEIPV4ADDRESS | FieldType::DESTINATIONIPV4ADDRESS => {
+                FieldType::SOURCEIPV4ADDRESS | 
+                FieldType::DESTINATIONIPV4ADDRESS |
+                FieldType::EXPORTERIPV4ADDRESS => {
                     set.fields.insert(field.id, FieldValue::IPv4(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
                 }
-                FieldType::OCTETDELTACOUNT | FieldType::PACKETDELTACOUNT => {
-                    set.fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
-                }
-                FieldType::SOURCETRANSPORTPORT | FieldType::DESTINATIONTRANSPORTPORT | FieldType::INGRESSINTERFACE | FieldType::EGRESSINTERFACE => {
-                    set.fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())));
-                }
-                FieldType::FLOWSTARTMILLISECONDS | FieldType::FLOWENDMILLISECONDS => {
+                FieldType::FLOWSTARTMILLISECONDS | 
+                FieldType::FLOWENDMILLISECONDS |
+                FieldType::SYSTEMINITTIMEMILLISECONDS |
+                FieldType::EXPORTEDFLOWRECORDTOTALCOUNT |
+                FieldType::EXPORTEDMESSAGETOTALCOUNT => {
                     set.fields.insert(field.id, FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())));
                 }
-                FieldType::PROTOCOLIDENTIFIER | FieldType::FLOWENDREASON | FieldType::IPCLASSOFSERVICE => {
+                FieldType::OCTETDELTACOUNT | 
+                FieldType::PACKETDELTACOUNT |
+                FieldType::EXPORTINGPROCESSID |
+                FieldType::SAMPLINGINTERVAL => {
+                    set.fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
+                }
+                FieldType::SOURCETRANSPORTPORT |
+                FieldType::DESTINATIONTRANSPORTPORT | 
+                FieldType::INGRESSINTERFACE | 
+                FieldType::EGRESSINTERFACE|
+                FieldType::VLANID => {
+                    set.fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())));
+                }
+                FieldType::PROTOCOLIDENTIFIER | 
+                FieldType::FLOWENDREASON | 
+                FieldType::IPCLASSOFSERVICE| 
+                FieldType::SOURCEIPV4PREFIXLENGTH |
+                FieldType::DESTINATIONIPV4PREFIXLENGTH | 
+                FieldType::EXPORTTRANSPORTPROTOCOL | 
+                FieldType::EXPORTPROTOCOLVERSION => {
                     set.fields.insert(field.id, FieldValue::U8(buf[offset]));
                 }
                 _ => {
@@ -256,11 +287,13 @@ impl Template {
 
 impl fmt::Display for Template {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", &self.header).unwrap();
+        write!(f, "{:?}", &self.header)?;
+
         for field in &self.fields {
-            write!(f, "\n\t{:?}", field).unwrap();
+            write!(f, "\n\t{:?}", field)?;
         }
-        write!(f, "")
+
+        Ok(())
     }
 }
 
@@ -286,11 +319,13 @@ impl OptionTemplate {
 
 impl fmt::Display for OptionTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", &self.header).unwrap();
+        write!(f, "{:?}", &self.header)?;
+
         for field in &self.fields {
-            write!(f, "\n\t{:?}", field).unwrap();
+            write!(f, "\n\t{:?}", field)?;
         }
-        write!(f, "")
+
+        Ok(())
     }
 }
 

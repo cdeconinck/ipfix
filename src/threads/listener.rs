@@ -6,22 +6,25 @@ use std::sync::mpsc;
 
 use crate::netflow::{ipfix, v5, NetflowMsg};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct RouteurTemplate {
-    exporter: IpAddr,
-    id: u16,
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+struct Exporter {
+    addr: IpAddr,   // ip source of the exporter
+    domain_id: u32, // observation domain id unique to the exporter
+}
+#[derive(Default)]
+struct ExporterInfos {
+    template: HashMap<u16, ipfix::Template>,
+    option_template: HashMap<u16, ipfix::OptionTemplate>,
 }
 
-type MapTemplate = HashMap<RouteurTemplate, ipfix::Template>;
-type MapOptionTemplate = HashMap<RouteurTemplate, ipfix::OptionTemplate>;
+type ExporterList = HashMap<Exporter, ExporterInfos>;
 
 pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
     let socket = UdpSocket::bind(&addr).expect(&format!("Failed to bind UDP socket to {}", &addr));
     info!("Listening for UDP packet on {}", &addr);
 
     let mut buf = [0; 1500];
-    let mut template_list: MapTemplate = HashMap::new();
-    let mut option_template_list: MapOptionTemplate = HashMap::new();
+    let mut exporter_list: ExporterList = HashMap::new();
 
     loop {
         trace!("Waiting for data...");
@@ -37,7 +40,7 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
         let version = u16::from_be_bytes(buf[0..2].try_into().unwrap());
         let msg_list = match version {
             v5::VERSION => parse_v5_msg(&buf[0..rcv_bytes], rcv_bytes),
-            ipfix::VERSION => parse_ipfix_msg(from.ip(), &buf[0..rcv_bytes], rcv_bytes, &mut template_list, &mut option_template_list),
+            ipfix::VERSION => parse_ipfix_msg(from.ip(), &buf[0..rcv_bytes], rcv_bytes, &mut exporter_list),
             _ => {
                 error!("Invalid netflow version in packet from {}, read {}", from, version);
                 continue;
@@ -74,7 +77,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
     Ok(pdu_list)
 }
 
-fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, template_list: &mut MapTemplate, option_template_list: &mut MapOptionTemplate) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
+fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut ExporterList) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
     let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE])?;
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
@@ -88,55 +91,77 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, template_list: &mut
         let set = ipfix::SetHeader::read(&buf[offset..])?;
         offset += ipfix::SET_HEADER_SIZE;
 
-        if set.set_id == ipfix::TEMPATE_SET_ID {
-            /*if template_header.content_size() + ipfix::TEMPLATE_FIELD_SIZE != set.content_size() {
-                return Err(format!(
-                    "Mismatch template header size {} and set content size {},",
-                    template_header.content_size() + ipfix::TEMPLATE_FIELD_SIZE,
-                    set.content_size()
-                ));
-            }*/
-
+        if set.id == ipfix::TEMPATE_SET_ID {
             let template = ipfix::Template::read(&buf[offset..])?;
-            info!("Received template from {}\n{}", from, template);
+            let exporter_key = Exporter {
+                addr: from,
+                domain_id: header.domain_id,
+            };
 
-            template_list.insert(
-                RouteurTemplate {
-                    exporter: from,
-                    id: template.header.id,
-                },
-                template,
-            );
-        } else if set.set_id == ipfix::OPTION_TEMPATE_SET_ID {
-            /*if option_template_header.content_size() + ipfix::OPTION_TEMPLATE_HEADER_SIZE != set.content_size() {
-                return Err(format!(
-                    "Mismatch option template header size {} and set content size {},",
-                    option_template_header.content_size() + ipfix::OPTION_TEMPLATE_HEADER_SIZE,
-                    set.content_size()
-                ));
-            }*/
+            info!("Template received from {:?}\n{}", exporter_key, template);
 
-            let option_template = ipfix::OptionTemplate::read(&buf[offset..])?;
-            info!("Received Option template from {}\n{}", from, option_template);
-
-            option_template_list.insert(
-                RouteurTemplate {
-                    exporter: from,
-                    id: option_template.header.id,
-                },
-                option_template,
-            );
-        } else if set.set_id >= ipfix::DATA_SET_ID_MIN {
-            let key = RouteurTemplate { exporter: from, id: set.set_id };
-
-            match template_list.get(&key) {
-                Some(template) => data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template))),
+            match exporter_list.get_mut(&exporter_key) {
+                Some(infos) => {
+                    infos.template.insert(template.header.id, template);
+                }
                 None => {
-                    // handle the parsing for the option template data set
+                    let mut infos = ExporterInfos { ..Default::default() };
+                    infos.template.insert(template.header.id, template);
+
+                    exporter_list.insert(exporter_key, infos);
+                }
+            }
+        } else if set.id == ipfix::OPTION_TEMPATE_SET_ID {
+            let option_template = ipfix::OptionTemplate::read(&buf[offset..])?;
+            let exporter_key = Exporter {
+                addr: from,
+                domain_id: header.domain_id,
+            };
+
+            info!("Option template received from {:?}\n{}", exporter_key, option_template);
+
+            match exporter_list.get_mut(&exporter_key) {
+                Some(infos) => {
+                    infos.option_template.insert(option_template.header.id, option_template);
+                }
+                None => {
+                    let mut infos = ExporterInfos { ..Default::default() };
+                    infos.option_template.insert(option_template.header.id, option_template);
+
+                    exporter_list.insert(exporter_key, infos);
+                }
+            }
+        } else if set.id >= ipfix::DATA_SET_ID_MIN {
+            let exporter_key = Exporter {
+                addr: from,
+                domain_id: header.domain_id,
+            };
+
+            match exporter_list.get(&exporter_key) {
+                Some(infos) => {
+                    // find a better syntax
+                    match infos.template.get(&set.id) {
+                        Some(template) => {
+                            data_set_list.push(Box::new(ipfix::DataSet::read_from_template(&buf[offset..], template)));
+                        }
+                        None => {
+                            match infos.option_template.get(&set.id) {
+                                Some(opt_template) => {
+                                    info!("Option data set received : {}", ipfix::DataSet::read_from_option_template(&buf[offset..], opt_template).print());
+                                }
+                                None => {
+                                    // no option template or template found for this data set
+                                }
+                            }
+                        }
+                    }
+                }
+                None => {
+                    // no exporter found for this dataset
                 }
             };
         } else {
-            return Err(format!("Invalide set_id read : {}", set.set_id));
+            return Err(format!("Invalide set_id read : {}", set.id));
         }
 
         offset += set.content_size();
