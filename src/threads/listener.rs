@@ -63,14 +63,21 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 
     let nb_pdu = (buf_len - v5::HEADER_SIZE) / v5::DATA_SET_SIZE;
     if nb_pdu != header.count as usize {
-        error!("Mismatch pdu number, we expect {} pdu but the header said {} ", nb_pdu, header.count);
+        error!("Mismatch pdu number, expect {} pdu but the count field in the header containes another value: {} ", nb_pdu, header);
     }
 
     let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu);
     let mut offset: usize = v5::HEADER_SIZE;
 
     while offset < buf_len {
-        pdu_list.push(Box::new(v5::DataSet::read(&buf[offset..])?));
+        let mut pdu = v5::DataSet::read(&buf[offset..])?;
+        if header.sampl_interval() > 0 {
+            pdu.octets *= header.sampl_interval() as u32;
+            pdu.packets *= header.sampl_interval() as u32;
+        }
+
+        pdu_list.push(Box::new(pdu));
+
         offset += v5::DATA_SET_SIZE;
     }
 
@@ -100,17 +107,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             info!("Template received from {:?}\n{}", exporter_key, template);
 
-            match exporter_list.get_mut(&exporter_key) {
-                Some(infos) => {
-                    infos.template.insert(template.header.id, template);
-                }
-                None => {
-                    let mut infos = ExporterInfos { ..Default::default() };
-                    infos.template.insert(template.header.id, template);
-
-                    exporter_list.insert(exporter_key, infos);
-                }
-            }
+            exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, template);
         } else if set.id == ipfix::OPTION_TEMPATE_SET_ID {
             let option_template = ipfix::OptionTemplate::read(&buf[offset..])?;
             let exporter_key = Exporter {
@@ -120,17 +117,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             info!("Option template received from {:?}\n{}", exporter_key, option_template);
 
-            match exporter_list.get_mut(&exporter_key) {
-                Some(infos) => {
-                    infos.option_template.insert(option_template.header.id, option_template);
-                }
-                None => {
-                    let mut infos = ExporterInfos { ..Default::default() };
-                    infos.option_template.insert(option_template.header.id, option_template);
-
-                    exporter_list.insert(exporter_key, infos);
-                }
-            }
+            exporter_list.entry(exporter_key).or_default().option_template.insert(option_template.header.id, option_template);
         } else if set.id >= ipfix::DATA_SET_ID_MIN {
             let exporter_key = Exporter {
                 addr: from,

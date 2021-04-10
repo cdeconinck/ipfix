@@ -1,4 +1,5 @@
 use core::convert::TryInto;
+use std::fmt;
 use std::net::Ipv4Addr;
 
 use crate::netflow::NetflowMsg;
@@ -10,15 +11,15 @@ pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 
 #[derive(Debug)]
 pub struct Header {
-    pub version: u16,        // NetFlow export format version number
-    pub count: u16,          // Number of flows exported in this packet (1-30)
-    pub uptime: u32,         // Current time in milliseconds since the export device booted
-    pub unix_secs: u32,      // Current count of seconds since 0000 UTC 1970
-    pub unix_nsecs: u32,     // Residual nanoseconds since 0000 UTC 1970
-    pub seq_number: u32,     // Sequence counter of total flows seen
-    pub engine_type: u8,     // Type of flow-switching engine
-    pub engine_id: u8,       // Slot number of the flow-switching engine
-    pub sampl_interval: u16, // First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval
+    pub version: u16,    // NetFlow export format version number
+    pub count: u16,      // Number of flows exported in this packet (1-30)
+    pub uptime: u32,     // Current time in milliseconds since the export device booted
+    pub unix_secs: u32,  // Current count of seconds since 0000 UTC 1970
+    pub unix_nsecs: u32, // Residual nanoseconds since 0000 UTC 1970
+    pub seq_number: u32, // Sequence counter of total flows seen
+    pub engine_type: u8, // Type of flow-switching engine
+    pub engine_id: u8,   // Slot number of the flow-switching engine
+    sampl: u16,          // First two bits hold the sampling mode; remaining 14 bits hold value of sampling interval
 }
 
 impl Header {
@@ -32,8 +33,37 @@ impl Header {
             seq_number: u32::from_be_bytes(buf[16..20].try_into().unwrap()),
             engine_type: buf[20],
             engine_id: buf[21],
-            sampl_interval: u16::from_be_bytes(buf[22..24].try_into().unwrap()),
+            sampl: u16::from_be_bytes(buf[22..24].try_into().unwrap()),
         })
+    }
+
+    #[inline]
+    pub fn sampl_mode(&self) -> u16 {
+        self.sampl >> 14
+    }
+
+    #[inline]
+    pub fn sampl_interval(&self) -> u16 {
+        self.sampl & 0b0011111111111111
+    }
+}
+
+impl fmt::Display for Header {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "version: {}, count: {}, uptime: {}ms, unix_secs: {}s, unix_nsecs: {}ns, seq_number: {}, engine_type: {}, engine_id: {}, sampl_mode: {}, sampl_interval: {}",
+            self.version,
+            self.count,
+            self.uptime,
+            self.unix_secs,
+            self.unix_nsecs,
+            self.seq_number,
+            self.engine_type,
+            self.engine_id,
+            self.sampl_mode(),
+            self.sampl_interval()
+        )
     }
 }
 
@@ -67,13 +97,20 @@ pub struct DataSet {
 impl NetflowMsg for DataSet {
     fn print(&self) -> String {
         format!(
-            "src_addr: {}, dst_addr: {}, octets: {}, packets: {}, protocol: {}, duration: {}ms",
+            "src_addr: {}/{}:{}, dst_addr: {}/{}:{}, octets: {}, packets: {}, protocol: {}, duration: {}ms, src_ac: {}, dst_as: {}, tos: {}",
             Ipv4Addr::from(self.src_addr),
+            self.src_mask,
+            self.src_port,
             Ipv4Addr::from(self.dst_addr),
+            self.dst_mask,
+            self.dst_port,
             self.octets,
             self.packets,
             self.protocol,
-            self.end_time - self.start_time
+            self.end_time - self.start_time,
+            self.src_as,
+            self.dst_as,
+            self.tos
         )
     }
 }

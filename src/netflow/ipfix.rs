@@ -161,7 +161,7 @@ impl DataSet {
     }
 
     fn parse_field(buf: &[u8], field_list: &Vec<TemplateField>) -> Self {
-        let mut set: DataSet = DataSet { ..Default::default() };
+        let mut set: DataSet = DataSet { fields: HashMap::with_capacity(field_list.len()) };
         let mut offset = 0;
 
         for field in field_list {
@@ -220,9 +220,11 @@ impl DataSet {
 impl NetflowMsg for DataSet {
     fn print(&self) -> String {
         let mut output = String::new();
+
         for (ftype, fvalue) in self.fields.iter() {
             write!(output, "{:?}: {}, ", ftype, fvalue).unwrap();
         }
+
         output
     }
 }
