@@ -94,9 +94,12 @@ pub struct DataSet {
     pub pad2: u16,
 }
 
-impl NetflowMsg for DataSet {
-    fn print(&self) -> String {
-        format!(
+impl NetflowMsg for DataSet {}
+
+impl fmt::Display for DataSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
             "src_addr: {}/{}:{}, dst_addr: {}/{}:{}, octets: {}, packets: {}, protocol: {}, duration: {}ms, src_ac: {}, dst_as: {}, tos: {}",
             Ipv4Addr::from(self.src_addr),
             self.src_mask,

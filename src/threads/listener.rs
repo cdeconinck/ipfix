@@ -134,7 +134,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                         None => {
                             match infos.option_template.get(&set.id) {
                                 Some(opt_template) => {
-                                    info!("Option data set received : {}", ipfix::DataSet::read_from_option_template(&buf[offset..], opt_template).print());
+                                    info!("Option data set received : {}", ipfix::DataSet::read_from_option_template(&buf[offset..], opt_template));
                                 }
                                 None => {
                                     // no option template or template found for this data set

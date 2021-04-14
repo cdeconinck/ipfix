@@ -3,7 +3,6 @@ use log::debug;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::fmt;
-use std::fmt::Write;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 use crate::netflow::NetflowMsg;
@@ -217,15 +216,15 @@ impl DataSet {
     }
 }
 
-impl NetflowMsg for DataSet {
-    fn print(&self) -> String {
-        let mut output = String::new();
+impl NetflowMsg for DataSet {}
 
+impl fmt::Display for DataSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (ftype, fvalue) in self.fields.iter() {
-            write!(output, "{:?}: {}, ", ftype, fvalue).unwrap();
+            write!(f, "{:?}: {}, ", ftype, fvalue).unwrap();
         }
 
-        output
+        Ok(())
     }
 }
 
