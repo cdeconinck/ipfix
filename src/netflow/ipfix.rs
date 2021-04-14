@@ -8,24 +8,25 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use crate::netflow::NetflowMsg;
 
 pub const VERSION: u16 = 10;
+
+/******************************** MSG HEADER ********************************/
+
 pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
-/// MSG HEADER ////
 
-/*
-from https://tools.ietf.org/html/rfc7011
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       Version Number          |            Length             |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                           Export Time                         |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                       Sequence Number                         |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Observation Domain ID                      |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+/// from https://tools.ietf.org/html/rfc7011
+/// ```
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |       Version Number          |            Length             |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                           Export Time                         |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                       Sequence Number                         |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |                    Observation Domain ID                      |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// ```
 
 #[derive(Debug)]
 pub struct Header {
@@ -48,22 +49,21 @@ impl Header {
     }
 }
 
-/// SET HEADER ///
-
-/*
-from https://tools.ietf.org/html/rfc7011
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|          Set ID               |          Length               |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+/******************************** SET HEADER ********************************/
 
 pub const SET_HEADER_SIZE: usize = std::mem::size_of::<SetHeader>();
 pub const TEMPATE_SET_ID: u16 = 2;
 pub const OPTION_TEMPATE_SET_ID: u16 = 3;
 pub const DATA_SET_ID_MIN: u16 = 256;
+
+/// from https://tools.ietf.org/html/rfc7011
+/// ```
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |          Set ID               |          Length               |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// ```
 
 #[derive(Debug)]
 pub struct SetHeader {
@@ -85,19 +85,18 @@ impl SetHeader {
     }
 }
 
-/// TEMPLATE HEADER ///
-
-/*
-from https://tools.ietf.org/html/rfc7011
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      Template ID (> 255)      |         Field Count           |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+/******************************** TEMPLATE HEADER ********************************/
 
 pub const TEMPLATE_HEADER_SIZE: usize = 4;
+
+/// from https://tools.ietf.org/html/rfc7011
+/// ```
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |      Template ID (> 255)      |         Field Count           |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// ```
 
 #[derive(Debug)]
 pub struct TemplateHeader {
@@ -114,24 +113,23 @@ impl TemplateHeader {
     }
 }
 
-/// TEMPLATE RECORD FIELD ///
-
-/*
-from https://tools.ietf.org/html/rfc7011
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|          Field id             |         Field Length          |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+/********************************  TEMPLATE RECORD FIELD ********************************/
 
 pub const TEMPLATE_FIELD_SIZE: usize = 4;
 
+/// from https://tools.ietf.org/html/rfc7011
+/// ```
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |          Field id             |         Field Length          |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// ```
+
 #[derive(Debug)]
 pub struct TemplateField {
-    pub id: FieldType,
-    pub length: u16,
+    pub id: FieldType, // A numeric value that represents the Information Element
+    pub length: u16,   // The length of the corresponding encoded Information Element, in octets
 }
 
 impl TemplateField {
@@ -143,7 +141,8 @@ impl TemplateField {
     }
 }
 
-/// DATA SET ///
+/********************************  DATA SET ********************************/
+
 #[derive(Debug, Default)]
 pub struct DataSet {
     pub fields: HashMap<FieldType, FieldValue>,
@@ -221,28 +220,27 @@ impl NetflowMsg for DataSet {}
 impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (ftype, fvalue) in self.fields.iter() {
-            write!(f, "{:?}: {}, ", ftype, fvalue).unwrap();
+            write!(f, "{:?}: {}, ", ftype, fvalue)?;
         }
 
         Ok(())
     }
 }
 
-/// OPTION TEMPLATE HEADER ///
-
-/*
-from https://tools.ietf.org/html/rfc7011
-
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|         Template ID (> 255)   |         Field Count           |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|      Scope Field Count        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-*/
+/********************************  OPTION TEMPLATE HEADER ********************************/
 
 pub const OPTION_TEMPLATE_HEADER_SIZE: usize = 6;
+
+/// from https://tools.ietf.org/html/rfc7011
+/// ```
+///  0                   1                   2                   3
+///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |         Template ID (> 255)   |         Field Count           |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// |      Scope Field Count        |
+/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/// ```
 
 #[derive(Debug)]
 pub struct OptionTemplateHeader {
@@ -265,6 +263,8 @@ impl OptionTemplateHeader {
         self.field_count as usize * TEMPLATE_FIELD_SIZE
     }
 }
+
+/********************************  TEMPLATE ********************************/
 
 pub struct Template {
     pub header: TemplateHeader,
@@ -298,6 +298,8 @@ impl fmt::Display for Template {
     }
 }
 
+/********************************  OPTION TEMPLATE ********************************/
+
 pub struct OptionTemplate {
     pub header: OptionTemplateHeader,
     pub fields: Vec<TemplateField>,
@@ -330,9 +332,9 @@ impl fmt::Display for OptionTemplate {
     }
 }
 
-/// IPFIX FIELD TYPE ///
+/********************************  IPFIX FIELD TYPE ********************************/
 
-// http://www.iana.org/assignments/ipfix/ipfix.xml
+/// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]
 #[repr(u16)]
 pub enum FieldType {
@@ -739,8 +741,12 @@ pub enum FieldType {
     LAYER2FRAMETOTALCOUNT = 431,
     PSEUDOWIREDESTINATIONIPV4ADDRESS = 432,
     IGNOREDLAYER2FRAMETOTALCOUNT = 433,
+    // add other fields here...
 }
 
+/******************************** IPFIX FIELD VALUE ********************************/
+
+/// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(Debug)]
 pub enum FieldValue {
     U8(u8),
@@ -764,8 +770,9 @@ impl fmt::Display for FieldValue {
     }
 }
 
-/// IPFIX END REASON ///
+/******************************** IPFIX END REASON ********************************/
 
+/// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(FromPrimitive, PartialEq, Debug)]
 #[repr(u8)]
 pub enum EndReason {

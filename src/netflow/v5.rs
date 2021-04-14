@@ -5,10 +5,12 @@ use std::net::Ipv4Addr;
 use crate::netflow::NetflowMsg;
 
 pub const VERSION: u16 = 5;
+
+/******************************** MSG HEADER ********************************/
+
 pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
 
-/// HEADER ///
-
+/// from https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1006108
 #[derive(Debug)]
 pub struct Header {
     pub version: u16,    // NetFlow export format version number
@@ -67,31 +69,33 @@ impl fmt::Display for Header {
     }
 }
 
-/// DATA SET ///
+/******************************** DATA ********************************/
+
 pub const DATA_SET_SIZE: usize = std::mem::size_of::<DataSet>();
 
+/// from https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1006186
 #[derive(Debug)]
 pub struct DataSet {
-    pub src_addr: u32,
-    pub dst_addr: u32,
-    pub next_hop: u32,
-    pub input_int: u16,
-    pub output_int: u16,
-    pub octets: u32,
-    pub packets: u32,
-    pub start_time: u32,
-    pub end_time: u32,
-    pub src_port: u16,
-    pub dst_port: u16,
-    pub pad1: u8,
-    pub tcp_flag: u8,
-    pub protocol: u8,
-    pub tos: u8,
-    pub src_as: u16,
-    pub dst_as: u16,
-    pub src_mask: u8,
-    pub dst_mask: u8,
-    pub pad2: u16,
+    pub src_addr: u32,   // Source IP address
+    pub dst_addr: u32,   // Destination IP address
+    pub next_hop: u32,   // IP address of next hop router
+    pub input_int: u16,  // SNMP index of input interface
+    pub output_int: u16, // SNMP index of output interface
+    pub packets: u32,    // Packets in the flow
+    pub octets: u32,     // Total number of Layer 3 bytes in the packets of the flow
+    pub start_time: u32, // SysUptime at start of flow
+    pub end_time: u32,   // SysUptime at the time the last packet of the flow was received
+    pub src_port: u16,   // TCP/UDP source port number or equivalent
+    pub dst_port: u16,   // TCP/UDP destination port number or equivalent
+    pad1: u8,            // Unused (zero) bytes
+    pub tcp_flag: u8,    // Cumulative OR of TCP flags
+    pub protocol: u8,    // IP protocol type (for example, TCP = 6; UDP = 17)
+    pub tos: u8,         // IP type of service (ToS)
+    pub src_as: u16,     // Autonomous system number of the source, either origin or peer
+    pub dst_as: u16,     // Autonomous system number of the destination, either origin or peer
+    pub src_mask: u8,    // Source address prefix mask bits
+    pub dst_mask: u8,    // Destination address prefix mask bits
+    pad2: u16,           // Unused (zero) bytes
 }
 
 impl NetflowMsg for DataSet {}
@@ -100,7 +104,7 @@ impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "src_addr: {}/{}:{}, dst_addr: {}/{}:{}, octets: {}, packets: {}, protocol: {}, duration: {}ms, src_ac: {}, dst_as: {}, tos: {}",
+            "from: {}/{}:{}, to: {}/{}:{}, octets: {}, packets: {}, protocol: {}, duration: {}ms, src_ac: {}, dst_as: {}, tos: {}",
             Ipv4Addr::from(self.src_addr),
             self.src_mask,
             self.src_port,
