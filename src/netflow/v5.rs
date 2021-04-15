@@ -23,11 +23,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub const SIZE: usize = std::mem::size_of::<Header>();
+    pub const SIZE: usize = std::mem::size_of::<Self>();
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         if buf.len() < Self::SIZE {
-            return Err(format!("Not enoutgh space in buffer to read the NETFLOW V5 Header, required {} but received {}", Self::SIZE, buf.len()));
+            return Err(format!("Not enough space in buffer to read the NETFLOW V5 Header, required {} but received {}", Self::SIZE, buf.len()));
         }
 
         Ok(Header {
@@ -125,15 +125,11 @@ impl fmt::Display for DataSet {
 }
 
 impl DataSet {
-    pub const SIZE: usize = std::mem::size_of::<DataSet>();
+    pub const SIZE: usize = std::mem::size_of::<Self>();
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         if buf.len() < Self::SIZE {
-            return Err(format!(
-                "Not enoutgh space in buffer to read the NETFLOW V5 DataSet, required {} but received {}",
-                Self::SIZE,
-                buf.len()
-            ));
+            return Err(format!("Not enough space in buffer to read the NETFLOW V5 DataSet, required {} but received {}", Self::SIZE, buf.len()));
         }
 
         Ok(DataSet {
