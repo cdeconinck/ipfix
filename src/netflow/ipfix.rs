@@ -11,8 +11,6 @@ pub const VERSION: u16 = 10;
 
 /******************************** MSG HEADER ********************************/
 
-pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
-
 /// from https://tools.ietf.org/html/rfc7011
 /// ```
 ///  0                   1                   2                   3
@@ -38,7 +36,13 @@ pub struct Header {
 }
 
 impl Header {
+    pub const SIZE: usize = std::mem::size_of::<Header>();
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!("Not enoutgh space in buffer to read the IPFIX HEADER_SIZE, required {} but received {}", Self::SIZE, buf.len()));
+        }
+
         Ok(Header {
             version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
@@ -51,7 +55,6 @@ impl Header {
 
 /******************************** SET HEADER ********************************/
 
-pub const SET_HEADER_SIZE: usize = std::mem::size_of::<SetHeader>();
 pub const TEMPATE_SET_ID: u16 = 2;
 pub const OPTION_TEMPATE_SET_ID: u16 = 3;
 pub const DATA_SET_ID_MIN: u16 = 256;
@@ -72,7 +75,13 @@ pub struct SetHeader {
 }
 
 impl SetHeader {
+    pub const SIZE: usize = std::mem::size_of::<SetHeader>();
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!("Not enough space in buffer to read IPFIX SetHeader, required {} but received {}", Self::SIZE, buf.len()));
+        }
+
         Ok(SetHeader {
             id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
@@ -81,13 +90,11 @@ impl SetHeader {
 
     #[inline]
     pub fn content_size(&self) -> usize {
-        self.length as usize - SET_HEADER_SIZE
+        self.length as usize - Self::SIZE
     }
 }
 
 /******************************** TEMPLATE HEADER ********************************/
-
-pub const TEMPLATE_HEADER_SIZE: usize = 4;
 
 /// from https://tools.ietf.org/html/rfc7011
 /// ```
@@ -105,7 +112,13 @@ pub struct TemplateHeader {
 }
 
 impl TemplateHeader {
+    pub const SIZE: usize = 4;
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!("Not enough space in buffer to read IPFIX TemplateHeader, required {} but received {}", Self::SIZE, buf.len()));
+        }
+
         Ok(TemplateHeader {
             id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
@@ -114,8 +127,6 @@ impl TemplateHeader {
 }
 
 /********************************  TEMPLATE RECORD FIELD ********************************/
-
-pub const TEMPLATE_FIELD_SIZE: usize = 4;
 
 /// from https://tools.ietf.org/html/rfc7011
 /// ```
@@ -133,9 +144,20 @@ pub struct TemplateField {
 }
 
 impl TemplateField {
+    pub const SIZE: usize = 4;
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!("Not enough space in buffer to read IPFIX TemplateField, required {} but received {}", Self::SIZE, buf.len()));
+        }
+
+        let id_num = u16::from_be_bytes(buf[0..2].try_into().unwrap());
+
         Ok(TemplateField {
-            id: FromPrimitive::from_u16(u16::from_be_bytes(buf[0..2].try_into().unwrap())).unwrap(),
+            id: match FromPrimitive::from_u16(id_num) {
+                Some(id) => id,
+                None => return Err(format!("No FieldType found for value : {}", id_num)),
+            },
             length: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
         })
     }
@@ -229,8 +251,6 @@ impl fmt::Display for DataSet {
 
 /********************************  OPTION TEMPLATE HEADER ********************************/
 
-pub const OPTION_TEMPLATE_HEADER_SIZE: usize = 6;
-
 /// from https://tools.ietf.org/html/rfc7011
 /// ```
 ///  0                   1                   2                   3
@@ -250,17 +270,22 @@ pub struct OptionTemplateHeader {
 }
 
 impl OptionTemplateHeader {
+    pub const SIZE: usize = 6;
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!(
+                "Not enough space in buffer to read IPFIX OptionTemplateHeader, required {} but received {}",
+                Self::SIZE,
+                buf.len()
+            ));
+        }
+
         Ok(OptionTemplateHeader {
             id: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             field_count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
             scope_field_count: u16::from_be_bytes(buf[4..6].try_into().unwrap()),
         })
-    }
-
-    #[inline]
-    pub fn content_size(&self) -> usize {
-        self.field_count as usize * TEMPLATE_FIELD_SIZE
     }
 }
 
@@ -275,11 +300,11 @@ impl Template {
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         let header = TemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
-        let mut offset = TEMPLATE_HEADER_SIZE;
+        let mut offset = TemplateHeader::SIZE;
 
         for _ in 0..header.field_count {
             fields.push(TemplateField::read(&buf[offset..])?);
-            offset += TEMPLATE_FIELD_SIZE;
+            offset += TemplateField::SIZE;
         }
 
         Ok(Template { header, fields })
@@ -309,11 +334,11 @@ impl OptionTemplate {
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         let header = OptionTemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
-        let mut offset = OPTION_TEMPLATE_HEADER_SIZE;
+        let mut offset = OptionTemplateHeader::SIZE;
 
         for _ in 0..header.field_count {
             fields.push(TemplateField::read(&buf[offset..])?);
-            offset += TEMPLATE_FIELD_SIZE;
+            offset += TemplateField::SIZE;
         }
 
         Ok(OptionTemplate { header, fields })

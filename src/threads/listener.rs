@@ -31,8 +31,8 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
         let (rcv_bytes, from) = socket.recv_from(&mut buf).expect("Didn't received data");
         trace!("Received {} bytes from {}", rcv_bytes, from);
 
-        if rcv_bytes < v5::HEADER_SIZE {
-            error!("Data to small for a netflow packet from {}, expected at least {} bytes", from, v5::HEADER_SIZE);
+        if rcv_bytes < v5::Header::SIZE {
+            error!("Data to small for a netflow packet from {}, expected at least {} bytes", from, v5::Header::SIZE);
             continue;
         }
 
@@ -59,15 +59,15 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
 }
 
 fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
-    let header = v5::Header::read(&buf[0..v5::HEADER_SIZE])?;
+    let header = v5::Header::read(&buf[0..v5::Header::SIZE])?;
 
-    let nb_pdu = (buf_len - v5::HEADER_SIZE) / v5::DATA_SET_SIZE;
+    let nb_pdu = (buf_len - v5::Header::SIZE) / v5::DataSet::SIZE;
     if nb_pdu != header.count as usize {
         error!("Mismatch pdu number, expect {} pdu but the count field in the header containes another value: {} ", nb_pdu, header);
     }
 
     let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu);
-    let mut offset: usize = v5::HEADER_SIZE;
+    let mut offset: usize = v5::Header::SIZE;
 
     while offset < buf_len {
         let mut pdu = v5::DataSet::read(&buf[offset..])?;
@@ -78,25 +78,25 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 
         pdu_list.push(Box::new(pdu));
 
-        offset += v5::DATA_SET_SIZE;
+        offset += v5::DataSet::SIZE;
     }
 
     Ok(pdu_list)
 }
 
 fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut ExporterList) -> Result<Vec<Box<dyn NetflowMsg>>, String> {
-    let header = ipfix::Header::read(&buf[0..ipfix::HEADER_SIZE])?;
+    let header = ipfix::Header::read(&buf[0..])?;
     // check if the size provied contains all the data
     if buf_len != header.length as usize {
         return Err(format!("Mismatch size read from the ipfix header ({:?}) and the packet size ({})", header, buf_len));
     }
 
-    let mut offset = ipfix::HEADER_SIZE;
+    let mut offset = ipfix::Header::SIZE;
     let mut data_set_list: Vec<Box<dyn NetflowMsg>> = vec![];
 
     while offset < buf_len {
         let set = ipfix::SetHeader::read(&buf[offset..])?;
-        offset += ipfix::SET_HEADER_SIZE;
+        offset += ipfix::SetHeader::SIZE;
 
         if set.id == ipfix::TEMPATE_SET_ID {
             let template = ipfix::Template::read(&buf[offset..])?;

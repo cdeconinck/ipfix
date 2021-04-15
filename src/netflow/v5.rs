@@ -8,8 +8,6 @@ pub const VERSION: u16 = 5;
 
 /******************************** MSG HEADER ********************************/
 
-pub const HEADER_SIZE: usize = std::mem::size_of::<Header>();
-
 /// from https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1006108
 #[derive(Debug)]
 pub struct Header {
@@ -25,7 +23,13 @@ pub struct Header {
 }
 
 impl Header {
+    pub const SIZE: usize = std::mem::size_of::<Header>();
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!("Not enoutgh space in buffer to read the NETFLOW V5 Header, required {} but received {}", Self::SIZE, buf.len()));
+        }
+
         Ok(Header {
             version: u16::from_be_bytes(buf[0..2].try_into().unwrap()),
             count: u16::from_be_bytes(buf[2..4].try_into().unwrap()),
@@ -70,8 +74,6 @@ impl fmt::Display for Header {
 }
 
 /******************************** DATA ********************************/
-
-pub const DATA_SET_SIZE: usize = std::mem::size_of::<DataSet>();
 
 /// from https://www.cisco.com/c/en/us/td/docs/net_mgmt/netflow_collection_engine/3-6/user/guide/format.html#wp1006186
 #[derive(Debug)]
@@ -123,7 +125,17 @@ impl fmt::Display for DataSet {
 }
 
 impl DataSet {
+    pub const SIZE: usize = std::mem::size_of::<DataSet>();
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
+        if buf.len() < Self::SIZE {
+            return Err(format!(
+                "Not enoutgh space in buffer to read the NETFLOW V5 DataSet, required {} but received {}",
+                Self::SIZE,
+                buf.len()
+            ));
+        }
+
         Ok(DataSet {
             src_addr: u32::from_be_bytes(buf[0..4].try_into().unwrap()),
             dst_addr: u32::from_be_bytes(buf[4..8].try_into().unwrap()),
