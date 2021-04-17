@@ -55,10 +55,6 @@ impl Header {
 
 /******************************** SET HEADER ********************************/
 
-pub const TEMPATE_SET_ID: u16 = 2;
-pub const OPTION_TEMPATE_SET_ID: u16 = 3;
-pub const DATA_SET_ID_MIN: u16 = 256;
-
 /// from https://tools.ietf.org/html/rfc7011
 /// ```
 ///  0                   1                   2                   3
@@ -172,6 +168,8 @@ pub struct DataSet {
 
 #[rustfmt::skip]
 impl DataSet {
+    pub const MIN_SET_ID: u16 = 256;
+
     pub fn read_from_option_template(buf: &[u8], template: &OptionTemplate) -> Self {
         DataSet::parse_field(buf, &template.fields)
     }
@@ -297,6 +295,8 @@ pub struct Template {
 }
 
 impl Template {
+    pub const SET_ID: u16 = 2;
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         let header = TemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
@@ -331,6 +331,8 @@ pub struct OptionTemplate {
 }
 
 impl OptionTemplate {
+    pub const SET_ID: u16 = 3;
+
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         let header = OptionTemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];

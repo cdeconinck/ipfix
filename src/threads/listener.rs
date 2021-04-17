@@ -98,7 +98,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
         let set = ipfix::SetHeader::read(&buf[offset..])?;
         offset += ipfix::SetHeader::SIZE;
 
-        if set.id == ipfix::TEMPATE_SET_ID {
+        if set.id == ipfix::Template::SET_ID {
             let template = ipfix::Template::read(&buf[offset..])?;
             let exporter_key = Exporter {
                 addr: from,
@@ -108,7 +108,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
             info!("Template received from {:?}\n{}", exporter_key, template);
 
             exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, template);
-        } else if set.id == ipfix::OPTION_TEMPATE_SET_ID {
+        } else if set.id == ipfix::OptionTemplate::SET_ID {
             let option_template = ipfix::OptionTemplate::read(&buf[offset..])?;
             let exporter_key = Exporter {
                 addr: from,
@@ -118,7 +118,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
             info!("Option template received from {:?}\n{}", exporter_key, option_template);
 
             exporter_list.entry(exporter_key).or_default().option_template.insert(option_template.header.id, option_template);
-        } else if set.id >= ipfix::DATA_SET_ID_MIN {
+        } else if set.id >= ipfix::DataSet::MIN_SET_ID {
             let exporter_key = Exporter {
                 addr: from,
                 domain_id: header.domain_id,
@@ -148,7 +148,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                 }
             };
         } else {
-            return Err(format!("Invalide set_id read : {}", set.id));
+            return Err(format!("Invalide SetHeader id read : {}", set.id));
         }
 
         offset += set.content_size();
