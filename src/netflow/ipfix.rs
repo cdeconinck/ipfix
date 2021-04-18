@@ -36,7 +36,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub const SIZE: usize = std::mem::size_of::<Self>();
+    pub const SIZE: usize = 16;
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         if buf.len() < Self::SIZE {
@@ -71,7 +71,7 @@ pub struct SetHeader {
 }
 
 impl SetHeader {
-    pub const SIZE: usize = std::mem::size_of::<Self>();
+    pub const SIZE: usize = 4;
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
         if buf.len() < Self::SIZE {
