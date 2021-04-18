@@ -50,7 +50,7 @@ impl Header {
 
     #[inline]
     pub fn sampl_interval(&self) -> u16 {
-        self.sampl & 0b0011111111111111
+        self.sampl & 0b0011_1111_1111_1111
     }
 }
 
