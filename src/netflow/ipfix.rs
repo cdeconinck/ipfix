@@ -159,79 +159,33 @@ impl TemplateField {
     }
 }
 
-/********************************  DATA SET ********************************/
+/******************************** DATA SET ********************************/
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DataSet {
     pub fields: HashMap<FieldType, FieldValue>,
 }
 
-#[rustfmt::skip]
 impl DataSet {
     pub const MIN_SET_ID: u16 = 256;
 
-    pub fn read_from_option_template(buf: &[u8], template: &OptionTemplate) -> Self {
-        DataSet::parse_field(buf, &template.fields)
-    }
-
-    pub fn read_from_template (buf: &[u8], template: &Template) -> Self {
-        DataSet::parse_field(buf, &template.fields)
-    }
-
-    fn parse_field(buf: &[u8], field_list: &Vec<TemplateField>) -> Self {
-        let mut set: DataSet = DataSet { fields: HashMap::with_capacity(field_list.len()) };
+    pub fn read(buf: &[u8], field_list: &Vec<TemplateField>) -> Self {
+        let mut fields = HashMap::with_capacity(field_list.len());
         let mut offset = 0;
 
         for field in field_list {
-            match field.id {
-                FieldType::SourceIPv6Address | 
-                FieldType::DestinationIPv6Address |
-                FieldType::ExporterIPv6Address  => {
-                    set.fields.insert(field.id, FieldValue::IPv6(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())));
-                }
-                FieldType::SourceIPv4Address | 
-                FieldType::DestinationIPv4Address |
-                FieldType::ExporterIPv4Address => {
-                    set.fields.insert(field.id, FieldValue::IPv4(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
-                }
-                FieldType::FlowStartMilliseconds | 
-                FieldType::FlowEndMilliseconds |
-                FieldType::SystemInitTimeMilliseconds |
-                FieldType::ExportedFlowRecordTotalCount |
-                FieldType::ExportedMessageTotalCount => {
-                    set.fields.insert(field.id, FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())));
-                }
-                FieldType::OctetDeltaCount | 
-                FieldType::PacketDeltaCount |
-                FieldType::ExportingProcessId |
-                FieldType::SamplingInterval => {
-                    set.fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())));
-                }
-                FieldType::SourceTransportPort |
-                FieldType::DestinationTransportPort | 
-                FieldType::IngressInterface | 
-                FieldType::EgressInterface|
-                FieldType::VlanId => {
-                    set.fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())));
-                }
-                FieldType::ProtocolIdentifier | 
-                FieldType::FlowEndReason | 
-                FieldType::IPClassOfService| 
-                FieldType::SourceIPv4PrefixLength |
-                FieldType::DestinationIPv4PrefixLength | 
-                FieldType::ExportTransportProtocol | 
-                FieldType::ExportProtocolVersion => {
-                    set.fields.insert(field.id, FieldValue::U8(buf[offset]));
-                }
-                _ => {
-                    debug!("Skipping field {:?} with size {}", field.id, field.length);
-                }
-            }
-
+            match field.length {
+                1 => fields.insert(field.id, FieldValue::U8(buf[offset])),
+                2 => fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap()))),
+                4 => fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap()))),
+                8 => fields.insert(field.id, FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap()))),
+                16 => fields.insert(field.id, FieldValue::U128(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap()))),
+                _ => fields.insert(field.id, FieldValue::Dyn(buf[offset..offset + field.length as usize].to_vec())),
+            };
             offset += field.length as usize;
         }
 
-        set
+        DataSet { fields }
     }
 }
 
@@ -240,7 +194,10 @@ impl NetflowMsg for DataSet {}
 impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (ftype, fvalue) in self.fields.iter() {
-            write!(f, "{:?}: {}, ", ftype, fvalue)?;
+            match ftype {
+                // Add output for special type here, like IPv4, IPv6, ...
+                _ => write!(f, "{:?}: {}, ", ftype, fvalue)?,
+            }
         }
 
         Ok(())
@@ -842,8 +799,8 @@ pub enum FieldValue {
     U16(u16),
     U32(u32),
     U64(u64),
-    IPv4(u32),
-    IPv6(u128),
+    U128(u128),
+    Dyn(Vec<u8>),
 }
 
 impl fmt::Display for FieldValue {
@@ -853,8 +810,8 @@ impl fmt::Display for FieldValue {
             FieldValue::U16(v) => v.fmt(f),
             FieldValue::U32(v) => v.fmt(f),
             FieldValue::U64(v) => v.fmt(f),
-            FieldValue::IPv4(v) => Ipv4Addr::from(*v).fmt(f),
-            FieldValue::IPv6(v) => Ipv6Addr::from(*v).fmt(f),
+            FieldValue::U128(v) => v.fmt(f),
+            FieldValue::Dyn(v) => write!(f, "{:?}", v), // to improve
         }
     }
 }

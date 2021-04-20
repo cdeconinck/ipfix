@@ -129,9 +129,9 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             if let Some(infos) = exporter_list.get(&exporter_key) {
                 if let Some(template) = infos.template.get(&set.id) {
-                    data_set_list.push(Box::new(ipfix::DataSet::read_from_template(&buf[offset..], template)));
+                    data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template.fields)));
                 } else if let Some(opt_template) = infos.option_template.get(&set.id) {
-                    info!("Option data set received : {}", ipfix::DataSet::read_from_option_template(&buf[offset..], opt_template));
+                    info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset..], &opt_template.fields));
                 }
             }
         } else {
