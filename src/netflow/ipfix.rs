@@ -194,8 +194,9 @@ impl NetflowMsg for DataSet {}
 impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (ftype, fvalue) in self.fields.iter() {
-            match ftype {
-                // Add output for special type here, like IPv4, IPv6, ...
+            match (ftype, fvalue) {
+                (FieldType::SourceIPv4Address, FieldValue::U32(v)) | (FieldType::DestinationIPv4Address, FieldValue::U32(v)) => write!(f, "{:?}: {}, ", ftype, Ipv4Addr::from(*v))?,
+                (FieldType::SourceIPv6Address, FieldValue::U128(v)) | (FieldType::DestinationIPv6Prefix, FieldValue::U128(v)) => write!(f, "{:?}: {}, ", ftype, Ipv6Addr::from(*v))?,
                 _ => write!(f, "{:?}: {}, ", ftype, fvalue)?,
             }
         }
