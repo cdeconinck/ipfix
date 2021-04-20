@@ -63,7 +63,10 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 
     let nb_pdu = (buf_len - v5::Header::SIZE) / v5::DataSet::SIZE;
     if nb_pdu != header.count as usize {
-        error!("Mismatch pdu number, expect {} pdu but the count field in the header containes another value: {} ", nb_pdu, header);
+        return Err(format!(
+            "Mismatch pdu number, expect {} pdu but the count field in the header containes another value: {} ",
+            nb_pdu, header
+        ));
     }
 
     let mut pdu_list: Vec<Box<dyn NetflowMsg>> = Vec::with_capacity(nb_pdu);
