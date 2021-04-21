@@ -173,15 +173,17 @@ impl DataSet {
         let mut offset = 0;
 
         for field in field_list {
-            let val = match field.length {
-                1 => FieldValue::U8(buf[offset]),
-                2 => FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())),
-                4 => FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())),
-                8 => FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())),
-                16 => FieldValue::U128(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())),
-                _ => FieldValue::Dyn(buf[offset..offset + field.length as usize].to_vec()),
-            };
-            fields.insert(field.id, val);
+            fields.insert(
+                field.id,
+                match field.length {
+                    1 => FieldValue::U8(buf[offset]),
+                    2 => FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())),
+                    4 => FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())),
+                    8 => FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())),
+                    16 => FieldValue::U128(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())),
+                    _ => FieldValue::Dyn(buf[offset..offset + field.length as usize].to_vec()),
+                },
+            );
             offset += field.length as usize;
         }
 
@@ -195,8 +197,12 @@ impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (ftype, fvalue) in self.fields.iter() {
             match (ftype, fvalue) {
-                (FieldType::SourceIPv4Address, FieldValue::U32(v)) | (FieldType::DestinationIPv4Address, FieldValue::U32(v)) => write!(f, "{:?}: {}, ", ftype, Ipv4Addr::from(*v))?,
-                (FieldType::SourceIPv6Address, FieldValue::U128(v)) | (FieldType::DestinationIPv6Prefix, FieldValue::U128(v)) => write!(f, "{:?}: {}, ", ftype, Ipv6Addr::from(*v))?,
+                (FieldType::SourceIPv4Address, FieldValue::U32(v)) | (FieldType::DestinationIPv4Address, FieldValue::U32(v)) | (FieldType::ExporterIPv4Address, FieldValue::U32(v)) => {
+                    write!(f, "{:?}: {}, ", ftype, Ipv4Addr::from(*v))?
+                }
+                (FieldType::SourceIPv6Address, FieldValue::U128(v)) | (FieldType::DestinationIPv6Prefix, FieldValue::U128(v)) | (FieldType::ExporterIPv6Address, FieldValue::U128(v)) => {
+                    write!(f, "{:?}: {}, ", ftype, Ipv6Addr::from(*v))?
+                }
                 _ => write!(f, "{:?}: {}, ", ftype, fvalue)?,
             }
         }
@@ -245,14 +251,14 @@ impl OptionTemplateHeader {
     }
 }
 
-/********************************  TEMPLATE ********************************/
+/******************************** DATA SET TEMPLATE ********************************/
 
-pub struct Template {
+pub struct DataSetTemplate {
     pub header: TemplateHeader,
     pub fields: Vec<TemplateField>,
 }
 
-impl Template {
+impl DataSetTemplate {
     pub const SET_ID: u16 = 2;
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
@@ -265,11 +271,11 @@ impl Template {
             offset += TemplateField::SIZE;
         }
 
-        Ok(Template { header, fields })
+        Ok(DataSetTemplate { header, fields })
     }
 }
 
-impl fmt::Display for Template {
+impl fmt::Display for DataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
 
@@ -281,14 +287,14 @@ impl fmt::Display for Template {
     }
 }
 
-/********************************  OPTION TEMPLATE ********************************/
+/******************************** OPTION DATA SET TEMPLATE ********************************/
 
-pub struct OptionTemplate {
+pub struct OptionDataSetTemplate {
     pub header: OptionTemplateHeader,
     pub fields: Vec<TemplateField>,
 }
 
-impl OptionTemplate {
+impl OptionDataSetTemplate {
     pub const SET_ID: u16 = 3;
 
     pub fn read(buf: &[u8]) -> Result<Self, String> {
@@ -301,11 +307,11 @@ impl OptionTemplate {
             offset += TemplateField::SIZE;
         }
 
-        Ok(OptionTemplate { header, fields })
+        Ok(OptionDataSetTemplate { header, fields })
     }
 }
 
-impl fmt::Display for OptionTemplate {
+impl fmt::Display for OptionDataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
 
@@ -317,7 +323,7 @@ impl fmt::Display for OptionTemplate {
     }
 }
 
-/********************************  IPFIX FIELD TYPE ********************************/
+/******************************** IPFIX FIELD TYPE ********************************/
 
 /// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]

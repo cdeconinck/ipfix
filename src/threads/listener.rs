@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::sync::mpsc;
 
-use crate::netflow::{ipfix, v5, NetflowMsg};
+use crate::netflow::{ipfix, v5, NetflowMsg, Template};
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 struct Exporter {
@@ -13,8 +13,8 @@ struct Exporter {
 }
 #[derive(Default)]
 struct ExporterInfos {
-    template: HashMap<u16, ipfix::Template>,
-    option_template: HashMap<u16, ipfix::OptionTemplate>,
+    sampling: u32,
+    template: HashMap<u16, Template>,
 }
 
 type ExporterList = HashMap<Exporter, ExporterInfos>;
@@ -101,8 +101,8 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
         let set = ipfix::SetHeader::read(&buf[offset..])?;
         offset += ipfix::SetHeader::SIZE;
 
-        if set.id == ipfix::Template::SET_ID {
-            let template = ipfix::Template::read(&buf[offset..])?;
+        if set.id == ipfix::DataSetTemplate::SET_ID {
+            let template = ipfix::DataSetTemplate::read(&buf[offset..])?;
             let exporter_key = Exporter {
                 addr: from,
                 domain_id: header.domain_id,
@@ -110,9 +110,9 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             info!("Template received from {:?}\n{}", exporter_key, template);
 
-            exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, template);
-        } else if set.id == ipfix::OptionTemplate::SET_ID {
-            let option_template = ipfix::OptionTemplate::read(&buf[offset..])?;
+            exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, Template::IpfixDataSet(template));
+        } else if set.id == ipfix::OptionDataSetTemplate::SET_ID {
+            let option_template = ipfix::OptionDataSetTemplate::read(&buf[offset..])?;
             let exporter_key = Exporter {
                 addr: from,
                 domain_id: header.domain_id,
@@ -120,7 +120,12 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             info!("Option template received from {:?}\n{}", exporter_key, option_template);
 
-            exporter_list.entry(exporter_key).or_default().option_template.insert(option_template.header.id, option_template);
+            exporter_list
+                .entry(exporter_key)
+                .or_default()
+                .template
+                .insert(option_template.header.id, Template::IpfixOptionDataSet(option_template));
+            //
         } else if set.id >= ipfix::DataSet::MIN_SET_ID {
             let exporter_key = Exporter {
                 addr: from,
@@ -129,9 +134,14 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
             if let Some(infos) = exporter_list.get(&exporter_key) {
                 if let Some(template) = infos.template.get(&set.id) {
-                    data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &template.fields)));
-                } else if let Some(opt_template) = infos.option_template.get(&set.id) {
-                    info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset..], &opt_template.fields));
+                    match template {
+                        Template::IpfixDataSet(t) => {
+                            data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &t.fields)));
+                        }
+                        Template::IpfixOptionDataSet(t) => {
+                            info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset..], &t.fields));
+                        }
+                    }
                 }
             }
         } else {
