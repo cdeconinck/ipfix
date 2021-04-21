@@ -1,5 +1,4 @@
 use core::convert::TryInto;
-use log::debug;
 use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::fmt;
@@ -174,14 +173,15 @@ impl DataSet {
         let mut offset = 0;
 
         for field in field_list {
-            match field.length {
-                1 => fields.insert(field.id, FieldValue::U8(buf[offset])),
-                2 => fields.insert(field.id, FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap()))),
-                4 => fields.insert(field.id, FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap()))),
-                8 => fields.insert(field.id, FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap()))),
-                16 => fields.insert(field.id, FieldValue::U128(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap()))),
-                _ => fields.insert(field.id, FieldValue::Dyn(buf[offset..offset + field.length as usize].to_vec())),
+            let val = match field.length {
+                1 => FieldValue::U8(buf[offset]),
+                2 => FieldValue::U16(u16::from_be_bytes(buf[offset..offset + 2].try_into().unwrap())),
+                4 => FieldValue::U32(u32::from_be_bytes(buf[offset..offset + 4].try_into().unwrap())),
+                8 => FieldValue::U64(u64::from_be_bytes(buf[offset..offset + 8].try_into().unwrap())),
+                16 => FieldValue::U128(u128::from_be_bytes(buf[offset..offset + 16].try_into().unwrap())),
+                _ => FieldValue::Dyn(buf[offset..offset + field.length as usize].to_vec()),
             };
+            fields.insert(field.id, val);
             offset += field.length as usize;
         }
 
