@@ -125,7 +125,6 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                 .or_default()
                 .template
                 .insert(option_template.header.id, Template::IpfixOptionDataSet(option_template));
-            //
         } else if set.id >= ipfix::DataSet::MIN_SET_ID {
             let exporter_key = Exporter {
                 addr: from,

@@ -156,3 +156,26 @@ impl DataSet {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hex_literal::hex;
+
+    #[test]
+    fn test_read_valid_msg_header() {
+        let data: [u8; 24] = hex!("00 05 00 10 00 00 04 b2 60 80 b8 9c 1a 47 ff 30 00 00 00 02 01 00 00 00");
+        let header = Header::read(&data).unwrap();
+
+        assert_eq!(VERSION, header.version);
+        assert_eq!(16, header.count);
+        assert_eq!(1202, header.uptime);
+        assert_eq!(1619048604, header.unix_secs);
+        assert_eq!(440926000, header.unix_nsecs);
+        assert_eq!(2, header.seq_number);
+        assert_eq!(1, header.engine_type);
+        assert_eq!(0, header.engine_id);
+        assert_eq!(0, header.sampl_mode());
+        assert_eq!(0, header.sampl_interval());
+    }
+}
