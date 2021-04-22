@@ -160,6 +160,13 @@ impl DataSet {
     pub fn duration(&self) -> u32 {
         self.end_time - self.start_time
     }
+
+    pub fn add_sampling(&mut self, sampling: u32) {
+        if sampling > 0 {
+            self.octets *= sampling;
+            self.packets *= sampling;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -196,15 +203,18 @@ mod tests {
              00 28 00 50 00 00 06 00 c3 0d 35 bd 15 1a 00 00"
         );
 
-        let msg = DataSet::read(&data).unwrap();
+        let mut msg = DataSet::read(&data).unwrap();
+
+        let octets = 259;
+        let packets = 795;
 
         assert_eq!(msg.src_addr, u32::from(Ipv4Addr::new(112, 10, 20, 10)));
         assert_eq!(msg.dst_addr, u32::from(Ipv4Addr::new(172, 30, 190, 10)));
         assert_eq!(msg.next_hop, u32::from(Ipv4Addr::new(172, 199, 15, 1)));
         assert_eq!(msg.input_int, 0);
         assert_eq!(msg.output_int, 0);
-        assert_eq!(msg.packets, 795);
-        assert_eq!(msg.octets, 259);
+        assert_eq!(msg.packets, packets);
+        assert_eq!(msg.octets, octets);
         assert_eq!(msg.start_time, 566);
         assert_eq!(msg.end_time, 936);
         assert_eq!(msg.duration(), 370);
@@ -218,5 +228,16 @@ mod tests {
         assert_eq!(msg.dst_as, 13757);
         assert_eq!(msg.src_mask, 21);
         assert_eq!(msg.dst_mask, 26);
+
+        // check if we add invalid sampling
+        msg.add_sampling(0);
+        assert_eq!(msg.packets, packets);
+        assert_eq!(msg.octets, octets);
+
+        // check if we add a valid sampling
+        let sampling = 10;
+        msg.add_sampling(sampling);
+        assert_eq!(msg.packets, packets * sampling);
+        assert_eq!(msg.octets, octets * sampling);
     }
 }

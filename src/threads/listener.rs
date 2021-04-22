@@ -11,10 +11,19 @@ struct Exporter {
     addr: IpAddr,   // ip source of the exporter
     domain_id: u32, // observation domain id unique to the exporter
 }
-#[derive(Default)]
+
 struct ExporterInfos {
-    sampling: u32,
+    pub sampling: u64,
     template: HashMap<u16, Template>,
+}
+
+impl Default for ExporterInfos {
+    fn default() -> ExporterInfos {
+        ExporterInfos {
+            sampling: 1,
+            template: HashMap::new(),
+        }
+    }
 }
 
 type ExporterList = HashMap<Exporter, ExporterInfos>;
@@ -74,11 +83,7 @@ fn parse_v5_msg(buf: &[u8], buf_len: usize) -> Result<Vec<Box<dyn NetflowMsg>>, 
 
     while offset < buf_len {
         let mut pdu = v5::DataSet::read(&buf[offset..])?;
-        if header.sampl_interval() > 0 {
-            pdu.octets *= header.sampl_interval() as u32;
-            pdu.packets *= header.sampl_interval() as u32;
-        }
-
+        pdu.add_sampling(header.sampl_interval() as u32);
         pdu_list.push(Box::new(pdu));
 
         offset += v5::DataSet::SIZE;
@@ -135,7 +140,9 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                 if let Some(template) = infos.template.get(&set.id) {
                     match template {
                         Template::IpfixDataSet(t) => {
-                            data_set_list.push(Box::new(ipfix::DataSet::read(&buf[offset..], &t.fields)));
+                            let mut msg = ipfix::DataSet::read(&buf[offset..], &t.fields);
+                            msg.add_sampling(infos.sampling);
+                            data_set_list.push(Box::new(msg));
                         }
                         Template::IpfixOptionDataSet(t) => {
                             info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset..], &t.fields));
