@@ -116,7 +116,7 @@ impl fmt::Display for DataSet {
             self.octets,
             self.packets,
             self.protocol,
-            self.end_time - self.start_time,
+            self.duration(),
             self.src_as,
             self.dst_as,
             self.tos
@@ -155,6 +155,11 @@ impl DataSet {
             pad2: u16::from_be_bytes(buf[46..48].try_into().unwrap()),
         })
     }
+
+    #[inline]
+    pub fn duration(&self) -> u32 {
+        self.end_time - self.start_time
+    }
 }
 
 #[cfg(test)]
@@ -164,18 +169,54 @@ mod tests {
 
     #[test]
     fn test_read_valid_msg_header() {
-        let data: [u8; 24] = hex!("00 05 00 10 00 00 04 b2 60 80 b8 9c 1a 47 ff 30 00 00 00 02 01 00 00 00");
+        let data: [u8; Header::SIZE] = hex!(
+            "00 05 00 10 00 00 04 b2 60 80 b8 9c 1a 47 ff 30
+             00 00 00 02 01 00 00 00"
+        );
+
         let header = Header::read(&data).unwrap();
 
-        assert_eq!(VERSION, header.version);
-        assert_eq!(16, header.count);
-        assert_eq!(1202, header.uptime);
-        assert_eq!(1619048604, header.unix_secs);
-        assert_eq!(440926000, header.unix_nsecs);
-        assert_eq!(2, header.seq_number);
-        assert_eq!(1, header.engine_type);
-        assert_eq!(0, header.engine_id);
-        assert_eq!(0, header.sampl_mode());
-        assert_eq!(0, header.sampl_interval());
+        assert_eq!(header.version, VERSION);
+        assert_eq!(header.count, 16);
+        assert_eq!(header.uptime, 1202);
+        assert_eq!(header.unix_secs, 1619048604);
+        assert_eq!(header.unix_nsecs, 440926000);
+        assert_eq!(header.seq_number, 2);
+        assert_eq!(header.engine_type, 1);
+        assert_eq!(header.engine_id, 0);
+        assert_eq!(header.sampl_mode(), 0);
+        assert_eq!(header.sampl_interval(), 0);
+    }
+
+    #[test]
+    fn test_read_valid_data_msg() {
+        let data: [u8; DataSet::SIZE] = hex!(
+            "70 0a 14 0a ac 1e be 0a ac c7 0f 01 00 00 00 00
+             00 00 03 1b 00 00 01 03 00 00 02 36 00 00 03 a8
+             00 28 00 50 00 00 06 00 c3 0d 35 bd 15 1a 00 00"
+        );
+
+        let msg = DataSet::read(&data).unwrap();
+
+        assert_eq!(msg.src_addr, u32::from(Ipv4Addr::new(112, 10, 20, 10)));
+        assert_eq!(msg.dst_addr, u32::from(Ipv4Addr::new(172, 30, 190, 10)));
+        assert_eq!(msg.next_hop, u32::from(Ipv4Addr::new(172, 199, 15, 1)));
+        assert_eq!(msg.input_int, 0);
+        assert_eq!(msg.output_int, 0);
+        assert_eq!(msg.packets, 795);
+        assert_eq!(msg.octets, 259);
+        assert_eq!(msg.start_time, 566);
+        assert_eq!(msg.end_time, 936);
+        assert_eq!(msg.duration(), 370);
+        assert_eq!(msg.src_port, 40);
+        assert_eq!(msg.dst_port, 80);
+        assert_eq!(msg.pad1, 0);
+        assert_eq!(msg.tcp_flag, 0);
+        assert_eq!(msg.protocol, 6);
+        assert_eq!(msg.tos, 0);
+        assert_eq!(msg.src_as, 49933);
+        assert_eq!(msg.dst_as, 13757);
+        assert_eq!(msg.src_mask, 21);
+        assert_eq!(msg.dst_mask, 26);
     }
 }
