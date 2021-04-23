@@ -174,14 +174,20 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
-    #[test]
-    fn test_read_valid_msg_header() {
-        let data: [u8; Header::SIZE] = hex!(
-            "00 05 00 10 00 00 04 b2 60 80 b8 9c 1a 47 ff 30
-             00 00 00 02 01 00 00 00"
-        );
+    const HEADER_PAYLOD: [u8; Header::SIZE] = hex!(
+        "00 05 00 10 00 00 04 b2 60 80 b8 9c 1a 47 ff 30
+         00 00 00 02 01 00 00 00"
+    );
 
-        let header = Header::read(&data).unwrap();
+    const DATA_SET_PAYLOD: [u8; DataSet::SIZE] = hex!(
+        "70 0a 14 0a ac 1e be 0a ac c7 0f 01 00 00 00 00
+         00 00 03 1b 00 00 01 03 00 00 02 36 00 00 03 a8
+         00 28 00 50 00 00 06 00 c3 0d 35 bd 15 1a 00 00"
+    );
+
+    #[test]
+    fn read_valid_msg_header() {
+        let header = Header::read(&HEADER_PAYLOD).unwrap();
 
         assert_eq!(header.version, VERSION);
         assert_eq!(header.count, 16);
@@ -196,25 +202,22 @@ mod tests {
     }
 
     #[test]
-    fn test_read_valid_data_msg() {
-        let data: [u8; DataSet::SIZE] = hex!(
-            "70 0a 14 0a ac 1e be 0a ac c7 0f 01 00 00 00 00
-             00 00 03 1b 00 00 01 03 00 00 02 36 00 00 03 a8
-             00 28 00 50 00 00 06 00 c3 0d 35 bd 15 1a 00 00"
-        );
+    #[should_panic]
+    fn read_invalid_msg_header() {
+        Header::read(&HEADER_PAYLOD[0..Header::SIZE - 1]).unwrap();
+    }
 
-        let mut msg = DataSet::read(&data).unwrap();
-
-        let octets = 259;
-        let packets = 795;
+    #[test]
+    fn read_valid_data_msg() {
+        let msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();
 
         assert_eq!(msg.src_addr, u32::from(Ipv4Addr::new(112, 10, 20, 10)));
         assert_eq!(msg.dst_addr, u32::from(Ipv4Addr::new(172, 30, 190, 10)));
         assert_eq!(msg.next_hop, u32::from(Ipv4Addr::new(172, 199, 15, 1)));
         assert_eq!(msg.input_int, 0);
         assert_eq!(msg.output_int, 0);
-        assert_eq!(msg.packets, packets);
-        assert_eq!(msg.octets, octets);
+        assert_eq!(msg.packets, 795);
+        assert_eq!(msg.octets, 259);
         assert_eq!(msg.start_time, 566);
         assert_eq!(msg.end_time, 936);
         assert_eq!(msg.duration(), 370);
@@ -228,16 +231,31 @@ mod tests {
         assert_eq!(msg.dst_as, 13757);
         assert_eq!(msg.src_mask, 21);
         assert_eq!(msg.dst_mask, 26);
+    }
 
-        // check if we add invalid sampling
+    #[test]
+    #[should_panic]
+    fn read_invalid_data_msg() {
+        DataSet::read(&DATA_SET_PAYLOD[0..DataSet::SIZE - 1]).unwrap();
+    }
+
+    #[test]
+    fn check_invalid_sampling() {
+        let mut msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();
         msg.add_sampling(0);
-        assert_eq!(msg.packets, packets);
-        assert_eq!(msg.octets, octets);
 
-        // check if we add a valid sampling
+        assert_eq!(msg.packets, 795);
+        assert_eq!(msg.octets, 259);
+    }
+
+    #[test]
+    fn check_valid_sampling() {
         let sampling = 10;
+
+        let mut msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();
         msg.add_sampling(sampling);
-        assert_eq!(msg.packets, packets * sampling);
-        assert_eq!(msg.octets, octets * sampling);
+
+        assert_eq!(msg.packets, 795 * sampling);
+        assert_eq!(msg.octets, 259 * sampling);
     }
 }
