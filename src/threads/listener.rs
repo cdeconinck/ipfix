@@ -149,7 +149,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                     match template {
                         Template::IpfixDataSet(t) => {
                             let mut set_offset = 0;
-                            while set_offset < set.content_size() {
+                            while (set_offset + 4) < set.content_size() {
                                 let mut msg = ipfix::DataSet::read(&buf[offset + set_offset..], &t.fields, t.length)?;
                                 msg.add_sampling(infos.sampling);
                                 data_set_list.push(Box::new(msg));
@@ -158,7 +158,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                         }
                         Template::IpfixOptionDataSet(t) => {
                             let mut set_offset = 0;
-                            while set_offset < set.content_size() {
+                            while (set_offset + 4) < set.content_size() {
                                 info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset + set_offset..], &t.fields, t.length)?);
                                 set_offset += t.length;
                             }
