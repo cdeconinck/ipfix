@@ -168,7 +168,11 @@ pub struct DataSet {
 impl DataSet {
     pub const MIN_SET_ID: u16 = 256;
 
-    pub fn read(buf: &[u8], field_list: &Vec<TemplateField>) -> Self {
+    pub fn read(buf: &[u8], field_list: &Vec<TemplateField>, min_size: usize) -> Result<Self, String> {
+        if buf.len() < min_size {
+            return Err(format!("Not enough space in buffer to read IPFIX DataSet, required {} but received {}", min_size, buf.len()));
+        }
+
         let mut fields = HashMap::with_capacity(field_list.len());
         let mut offset = 0;
 
@@ -187,7 +191,7 @@ impl DataSet {
             offset += field.length as usize;
         }
 
-        DataSet { fields }
+        Ok(DataSet { fields })
     }
 
     pub fn add_sampling(&mut self, sampling: u64) {
@@ -272,6 +276,8 @@ impl OptionTemplateHeader {
 pub struct DataSetTemplate {
     pub header: TemplateHeader,
     pub fields: Vec<TemplateField>,
+    pub length: usize,
+    pub offset: usize,
 }
 
 impl DataSetTemplate {
@@ -281,22 +287,26 @@ impl DataSetTemplate {
         let header = TemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
         let mut offset = TemplateHeader::SIZE;
+        let mut length = 0;
 
         for _ in 0..header.field_count {
-            fields.push(TemplateField::read(&buf[offset..])?);
+            let field = TemplateField::read(&buf[offset..])?;
+            length += field.length as usize;
+            fields.push(field);
             offset += TemplateField::SIZE;
         }
 
-        Ok(DataSetTemplate { header, fields })
+        Ok(DataSetTemplate { header, fields, length, offset })
     }
 }
 
 impl fmt::Display for DataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
+        write!(f, "length: {}, offset: {} ", &self.length, self.offset)?;
 
         for field in &self.fields {
-            write!(f, "\n\t{:?}", field)?;
+            write!(f, "\n{:?}", field)?;
         }
 
         Ok(())
@@ -308,6 +318,8 @@ impl fmt::Display for DataSetTemplate {
 pub struct OptionDataSetTemplate {
     pub header: OptionTemplateHeader,
     pub fields: Vec<TemplateField>,
+    pub length: usize,
+    pub offset: usize,
 }
 
 impl OptionDataSetTemplate {
@@ -317,22 +329,26 @@ impl OptionDataSetTemplate {
         let header = OptionTemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
         let mut offset = OptionTemplateHeader::SIZE;
+        let mut length = 0;
 
         for _ in 0..header.field_count {
-            fields.push(TemplateField::read(&buf[offset..])?);
+            let field = TemplateField::read(&buf[offset..])?;
+            length += field.length as usize;
+            fields.push(field);
             offset += TemplateField::SIZE;
         }
 
-        Ok(OptionDataSetTemplate { header, fields })
+        Ok(OptionDataSetTemplate { header, fields, length, offset })
     }
 }
 
 impl fmt::Display for OptionDataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
+        write!(f, "length: {}, offset: {} ", &self.length, self.offset)?;
 
         for field in &self.fields {
-            write!(f, "\n\t{:?}", field)?;
+            write!(f, "\n{:?}", field)?;
         }
 
         Ok(())

@@ -28,7 +28,7 @@ impl Default for ExporterInfos {
 
 type ExporterList = HashMap<Exporter, ExporterInfos>;
 
-pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
+pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Vec<Box<dyn NetflowMsg>>>) {
     let socket = UdpSocket::bind(&addr).expect(&format!("Failed to bind UDP socket to {}", &addr));
     info!("Listening for UDP packet on {}", &addr);
 
@@ -58,8 +58,8 @@ pub fn listen(addr: SocketAddr, sender: mpsc::Sender<Box<dyn NetflowMsg>>) {
 
         match msg_list {
             Ok(list) => {
-                for msg in list {
-                    sender.send(msg).unwrap();
+                if !list.is_empty() {
+                    sender.send(list).unwrap();
                 }
             }
             Err(e) => error!("Error while parsing netflow msg {} from {} : {}", version, from, e),
@@ -107,29 +107,37 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
         offset += ipfix::SetHeader::SIZE;
 
         if set.id == ipfix::DataSetTemplate::SET_ID {
-            let template = ipfix::DataSetTemplate::read(&buf[offset..])?;
-            let exporter_key = Exporter {
-                addr: from,
-                domain_id: header.domain_id,
-            };
+            let mut set_offset = 0;
+            while (set_offset + 4) < set.content_size() {
+                let template = ipfix::DataSetTemplate::read(&buf[offset + set_offset..])?;
+                let exporter_key = Exporter {
+                    addr: from,
+                    domain_id: header.domain_id,
+                };
 
-            info!("Template received from {:?}\n{}", exporter_key, template);
+                info!("Template received from {:?}\n{}", exporter_key, template);
+                set_offset += template.offset;
 
-            exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, Template::IpfixDataSet(template));
+                exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, Template::IpfixDataSet(template));
+            }
         } else if set.id == ipfix::OptionDataSetTemplate::SET_ID {
-            let option_template = ipfix::OptionDataSetTemplate::read(&buf[offset..])?;
-            let exporter_key = Exporter {
-                addr: from,
-                domain_id: header.domain_id,
-            };
+            let mut set_offset = 0;
+            while (set_offset + 4) < set.content_size() {
+                let option_template = ipfix::OptionDataSetTemplate::read(&buf[offset + set_offset..])?;
+                let exporter_key = Exporter {
+                    addr: from,
+                    domain_id: header.domain_id,
+                };
 
-            info!("Option template received from {:?}\n{}", exporter_key, option_template);
+                info!("Option template received from {:?}\n{}", exporter_key, option_template);
+                set_offset += option_template.offset;
 
-            exporter_list
-                .entry(exporter_key)
-                .or_default()
-                .template
-                .insert(option_template.header.id, Template::IpfixOptionDataSet(option_template));
+                exporter_list
+                    .entry(exporter_key)
+                    .or_default()
+                    .template
+                    .insert(option_template.header.id, Template::IpfixOptionDataSet(option_template));
+            }
         } else if set.id >= ipfix::DataSet::MIN_SET_ID {
             let exporter_key = Exporter {
                 addr: from,
@@ -140,12 +148,20 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                 if let Some(template) = infos.template.get(&set.id) {
                     match template {
                         Template::IpfixDataSet(t) => {
-                            let mut msg = ipfix::DataSet::read(&buf[offset..], &t.fields);
-                            msg.add_sampling(infos.sampling);
-                            data_set_list.push(Box::new(msg));
+                            let mut set_offset = 0;
+                            while set_offset < set.content_size() {
+                                let mut msg = ipfix::DataSet::read(&buf[offset + set_offset..], &t.fields, t.length)?;
+                                msg.add_sampling(infos.sampling);
+                                data_set_list.push(Box::new(msg));
+                                set_offset += t.length;
+                            }
                         }
                         Template::IpfixOptionDataSet(t) => {
-                            info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset..], &t.fields));
+                            let mut set_offset = 0;
+                            while set_offset < set.content_size() {
+                                info!("Option data set received : {}", ipfix::DataSet::read(&buf[offset + set_offset..], &t.fields, t.length)?);
+                                set_offset += t.length;
+                            }
                         }
                     }
                 }
