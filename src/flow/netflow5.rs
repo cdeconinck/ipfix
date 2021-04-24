@@ -186,7 +186,7 @@ mod tests {
     );
 
     #[test]
-    fn read_valid_msg_header() {
+    fn read_msg_header() {
         let header = Header::read(&HEADER_PAYLOD).unwrap();
 
         assert_eq!(header.version, VERSION);
@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn read_valid_data_msg() {
+    fn read_data_msg() {
         let msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();
 
         assert_eq!(msg.src_addr, u32::from(Ipv4Addr::new(112, 10, 20, 10)));
@@ -249,7 +249,7 @@ mod tests {
     }
 
     #[test]
-    fn check_valid_sampling() {
+    fn check_sampling() {
         let sampling = 10;
 
         let mut msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();

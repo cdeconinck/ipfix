@@ -132,7 +132,7 @@ impl TemplateHeader {
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /// ```
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TemplateField {
     pub id: FieldType, // A numeric value that represents the Information Element
     pub length: u16,   // The length of the corresponding encoded Information Element, in octets
@@ -862,4 +862,97 @@ pub enum EndReason {
     ENDOFFLOWDETECTED = 3,
     FORCEDEND = 4,
     LACKOFRESOURCES = 5,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hex_literal::hex;
+
+    const HEADER_PAYLOD: [u8; 0] = hex!("");
+    const TEMPLATE_PAYLOAD: [u8; 0] = hex!("");
+    const OPTION_TEMPLATE_PAYLOAD: [u8; 0] = hex!("");
+    const DATASET: [u8; 0] = hex!("");
+    const OPTION_DATASET: [u8; 0] = hex!("");
+
+    #[test]
+    fn read_msg_header() {
+        let header = Header::read(&HEADER_PAYLOD).unwrap();
+
+        assert_eq!(header.version, VERSION);
+        assert_eq!(header.length, HEADER_PAYLOD.len() as u16);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_msg_header() {
+        Header::read(&HEADER_PAYLOD[0..Header::SIZE - 1]).unwrap();
+    }
+
+    #[test]
+    fn read_data_template() {
+        let msg = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+
+        assert_eq!(msg.header.id, DataSetTemplate::SET_ID);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_data_template() {
+        DataSetTemplate::read(&TEMPLATE_PAYLOAD[0..TEMPLATE_PAYLOAD.len() - 1]).unwrap();
+    }
+
+    #[test]
+    fn read_option_template() {
+        let msg = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
+
+        assert_eq!(msg.header.id, OptionDataSetTemplate::SET_ID);
+        assert_eq!(msg.header.field_count, 0);
+
+        // check each field
+        assert!(msg.fields.contains(&TemplateField {
+            id: FieldType::OctetDeltaCount,
+            length: 4
+        }));
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_option_template() {
+        OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD[0..OPTION_TEMPLATE_PAYLOAD.len() - 1]).unwrap();
+    }
+
+    #[test]
+    fn readd_dataset() {
+        let template = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        let msg = DataSet::read(&DATASET, &template.fields, template.length).unwrap();
+
+        for field in &template.fields {
+            assert!(msg.fields.get(&field.id).is_some());
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_dataset() {
+        let template = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        DataSet::read(&DATASET[0..DATASET.len() - 1], &template.fields, template.length).unwrap();
+    }
+
+    #[test]
+    fn read_option_dataset() {
+        let template = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
+        let msg = DataSet::read(&OPTION_DATASET, &template.fields, template.length).unwrap();
+
+        for field in &template.fields {
+            assert!(msg.fields.get(&field.id).is_some());
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_option_dataset() {
+        let template = OptionDataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        DataSet::read(&OPTION_DATASET[0..OPTION_DATASET.len() - 1], &template.fields, template.length).unwrap();
+    }
 }
