@@ -168,8 +168,10 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
                                 // check if the sampling interval is set in this record
                                 if let Some(&FieldValue::U32(v)) = msg.fields.get(&FieldType::SamplingInterval) {
-                                    infos.sampling = v;
-                                    info!("Setting the sampling for {:?} to {}", &exporter_key, infos.sampling);
+                                    if infos.sampling != v {
+                                        infos.sampling = v;
+                                        info!("Setting the sampling for {:?} to {}", &exporter_key, infos.sampling);
+                                    }
                                 }
                             }
                         }
