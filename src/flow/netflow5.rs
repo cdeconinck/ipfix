@@ -2,7 +2,7 @@ use core::convert::TryInto;
 use std::fmt;
 use std::net::Ipv4Addr;
 
-use crate::netflow::NetflowMsg;
+use crate::flow::Flow;
 
 pub const VERSION: u16 = 5;
 
@@ -100,7 +100,7 @@ pub struct DataSet {
     pad2: u16,           // Unused (zero) bytes
 }
 
-impl NetflowMsg for DataSet {}
+impl Flow for DataSet {}
 
 impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

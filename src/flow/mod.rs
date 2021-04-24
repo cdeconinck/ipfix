@@ -1,10 +1,10 @@
 use std::fmt::Display;
 
 pub mod ipfix;
-pub mod v5;
+pub mod netflow5;
 
 // common structure for each netflow data message
-pub trait NetflowMsg: Send + Display {}
+pub trait Flow: Send + Display {}
 
 pub enum Template {
     IpfixDataSet(ipfix::DataSetTemplate),

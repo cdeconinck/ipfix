@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use crate::netflow::NetflowMsg;
+use crate::flow::Flow;
 
 pub const VERSION: u16 = 10;
 
@@ -207,7 +207,7 @@ impl DataSet {
     }
 }
 
-impl NetflowMsg for DataSet {}
+impl Flow for DataSet {}
 
 impl fmt::Display for DataSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

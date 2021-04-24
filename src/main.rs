@@ -12,7 +12,7 @@ extern crate pretty_assertions;
 #[macro_use]
 extern crate num_derive;
 
-mod netflow;
+mod flow;
 mod threads;
 
 #[derive(Debug, StructOpt)]
