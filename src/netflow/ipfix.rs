@@ -196,17 +196,13 @@ impl DataSet {
 
     pub fn add_sampling(&mut self, sampling: u64) {
         if sampling > 0 {
-            self.fields.entry(FieldType::OctetDeltaCount).and_modify(|e| {
-                if let FieldValue::U64(v) = e {
-                    *v *= sampling
-                }
-            });
+            if let Some(FieldValue::U64(v)) = self.fields.get_mut(&FieldType::OctetDeltaCount) {
+                *v *= sampling
+            }
 
-            self.fields.entry(FieldType::PacketDeltaCount).and_modify(|e| {
-                if let FieldValue::U64(v) = e {
-                    *v *= sampling
-                }
-            });
+            if let Some(FieldValue::U64(v)) = self.fields.get_mut(&FieldType::PacketDeltaCount) {
+                *v *= sampling
+            }
         }
     }
 }
