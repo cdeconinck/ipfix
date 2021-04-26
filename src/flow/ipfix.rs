@@ -826,7 +826,7 @@ pub enum FieldType {
 /******************************** IPFIX FIELD VALUE ********************************/
 
 /// from http://www.iana.org/assignments/ipfix/ipfix.xml
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FieldValue {
     U8(u8),
     U16(u16),
@@ -897,12 +897,11 @@ mod tests {
          00 00 00 00 00"
     );
 
-    const OPTION_DATASET: [u8; 80] = hex!(
-        "00 0a 00 50 60 6c 55 a9 00 01 eb 6a 00 08 00 00
-         02 00 00 40 00 00 00 02 00 00 00 09 31 c3 26 c6
-         00 00 00 26 5b 7e cc 9b 00 00 01 4a a2 d7 85 28
-         b2 84 10 20 00 00 00 00 00 00 00 00 00 00 00 00
-         00 00 00 00 00 00 00 0a 00 0a 00 0a 0a 11 00 00"
+    const OPTION_DATASET: [u8; 60] = hex!(
+        "00 00 00 02 00 00 00 09 31 c3 26 c6 00 00 00 26
+         5b 7e cc 9b 00 00 01 4a a2 d7 85 28 b2 84 10 20
+         00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         00 00 00 0a 00 0a 00 0a 0a 11 00 00"
     );
 
     #[test]
@@ -1069,21 +1068,18 @@ mod tests {
         let msg = DataSet::read(&OPTION_DATASET, &template.fields, template.length).unwrap();
 
         assert_eq!(msg.fields.len(), template.fields.len());
-        for field in &template.fields {
-            assert!(msg.fields.get(&field.id).is_some());
-        }
 
-        // ExportedMessageTotalCount: 39489578694,
-        // SamplingInterval: 10,
-        // ExportProtocolVersion: 10,
-        // ExportingProcessId: 2,
-        // SystemInitTimeMilliseconds: 1420071241000,
-        // ExporterIPv6Address: ::,
-        // FlowIdleTimeout: 10,
-        // ExporterIPv4Address: 178.132.16.32,
-        // ExportTransportProtocol: 17,
-        // FlowActiveTimeout: 10,
-        // ExportedFlowRecordTotalCount: 164743793819,
+        assert_eq!(msg.fields.get(&FieldType::ExportingProcessId), Some(&FieldValue::U32(2)));
+        assert_eq!(msg.fields.get(&FieldType::ExportedMessageTotalCount), Some(&FieldValue::U64(39489578694)));
+        assert_eq!(msg.fields.get(&FieldType::SamplingInterval), Some(&FieldValue::U32(10)));
+        assert_eq!(msg.fields.get(&FieldType::ExportProtocolVersion), Some(&FieldValue::U8(VERSION as u8)));
+        assert_eq!(msg.fields.get(&FieldType::SystemInitTimeMilliseconds), Some(&FieldValue::U64(1420071241000)));
+        assert_eq!(msg.fields.get(&FieldType::ExporterIPv6Address), Some(&FieldValue::U128(u128::from("::".parse::<Ipv6Addr>().unwrap()))));
+        assert_eq!(msg.fields.get(&FieldType::FlowIdleTimeout), Some(&FieldValue::U16(10)));
+        assert_eq!(msg.fields.get(&FieldType::ExporterIPv4Address), Some(&FieldValue::U32(u32::from(Ipv4Addr::new(178, 132, 16, 32)))));
+        assert_eq!(msg.fields.get(&FieldType::ExportTransportProtocol), Some(&FieldValue::U8(17)));
+        assert_eq!(msg.fields.get(&FieldType::FlowActiveTimeout), Some(&FieldValue::U16(10)));
+        assert_eq!(msg.fields.get(&FieldType::ExportedFlowRecordTotalCount), Some(&FieldValue::U64(164743793819)));
     }
 
     #[test]

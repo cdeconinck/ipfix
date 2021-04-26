@@ -1,5 +1,5 @@
 use core::convert::TryInto;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr, UdpSocket};
 use std::sync::mpsc;
@@ -128,6 +128,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
             }
         } else if set.id == OptionDataSetTemplate::SET_ID {
             while (offset + padding) < end_of_set {
+                debug!("BUUUFFFFER = {:02x?}", &buf[offset..end_of_set]);
                 let (option_template, size_read) = OptionDataSetTemplate::read(&buf[offset..])?;
                 let exporter_key = Exporter {
                     addr: from,
@@ -162,6 +163,7 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
                         }
                         Template::IpfixOptionDataSet(t) => {
                             while (offset + padding) < end_of_set {
+                                debug!("DATAAAAAAAA = {:02x?}", &buf[offset..end_of_set]);
                                 let msg = DataSet::read(&buf[offset..], &t.fields, t.length)?;
                                 info!("Option data set received : {}", msg);
                                 offset += t.length;
