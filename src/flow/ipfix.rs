@@ -943,147 +943,38 @@ mod tests {
         assert_eq!(template.header.id, 256);
         assert_eq!(template.header.field_count, 27);
         assert_eq!(size_read, TEMPLATE_PAYLOAD.len());
-
         assert_eq!(template.fields.len(), template.header.field_count as usize);
-        assert_eq!(template.fields[0].id, FieldType::SourceIPv4Address);
-        assert_eq!(template.fields[1].id, FieldType::DestinationIPv4Address);
-        assert_eq!(template.fields[2].id, FieldType::IPClassOfService);
-        assert_eq!(template.fields[3].id, FieldType::ProtocolIdentifier);
-        assert_eq!(template.fields[4].id, FieldType::SourceTransportPort);
-        assert_eq!(template.fields[5].id, FieldType::DestinationTransportPort);
-        assert_eq!(template.fields[6].id, FieldType::IcmpTypeCodeIPv4);
-        assert_eq!(template.fields[7].id, FieldType::IngressInterface);
-        assert_eq!(template.fields[8].id, FieldType::VlanId);
-        assert_eq!(template.fields[9].id, FieldType::SourceIPv4PrefixLength);
-        assert_eq!(template.fields[10].id, FieldType::DestinationIPv4PrefixLength);
-        assert_eq!(template.fields[11].id, FieldType::BgpSourceAsNumber);
-        assert_eq!(template.fields[12].id, FieldType::BgpDestinationAsNumber);
-        assert_eq!(template.fields[13].id, FieldType::IpNextHopIPv4Address);
-        assert_eq!(template.fields[14].id, FieldType::TcpControlBits);
-        assert_eq!(template.fields[15].id, FieldType::EgressInterface);
-        assert_eq!(template.fields[16].id, FieldType::OctetDeltaCount);
-        assert_eq!(template.fields[17].id, FieldType::PacketDeltaCount);
-        assert_eq!(template.fields[18].id, FieldType::MSinimumTTL);
-        assert_eq!(template.fields[19].id, FieldType::MSaximumTTL);
-        assert_eq!(template.fields[20].id, FieldType::FlowStartMilliseconds);
-        assert_eq!(template.fields[21].id, FieldType::FlowEndMilliseconds);
-        assert_eq!(template.fields[22].id, FieldType::FlowEndReason);
-        assert_eq!(template.fields[23].id, FieldType::FlowDirection);
-        assert_eq!(template.fields[24].id, FieldType::Dot1qVlanId);
-        assert_eq!(template.fields[25].id, FieldType::Dot1qCustomerVlanId);
-        assert_eq!(template.fields[26].id, FieldType::FragmentIdentification);
 
-        // Template (Id = 256, Count = 27)
-        // Template Id: 256
-        // Field Count: 27
-        // Field (1/27): IP_SRC_ADDR
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1000 = Type: IP_SRC_ADDR (8)
-        //     Length: 4
-        // Field (2/27): IP_DST_ADDR
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1100 = Type: IP_DST_ADDR (12)
-        //     Length: 4
-        // Field (3/27): IP_TOS
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0101 = Type: IP_TOS (5)
-        //     Length: 1
-        // Field (4/27): PROTOCOL
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0100 = Type: PROTOCOL (4)
-        //     Length: 1
-        // Field (5/27): L4_SRC_PORT
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0111 = Type: L4_SRC_PORT (7)
-        //     Length: 2
-        // Field (6/27): L4_DST_PORT
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1011 = Type: L4_DST_PORT (11)
-        //     Length: 2
-        // Field (7/27): ICMP_TYPE
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0010 0000 = Type: ICMP_TYPE (32)
-        //     Length: 2
-        // Field (8/27): INPUT_SNMP
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1010 = Type: INPUT_SNMP (10)
-        //     Length: 4
-        // Field (9/27): SRC_VLAN
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0011 1010 = Type: SRC_VLAN (58)
-        //     Length: 2
-        // Field (10/27): SRC_MASK
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1001 = Type: SRC_MASK (9)
-        //     Length: 1
-        // Field (11/27): DST_MASK
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1101 = Type: DST_MASK (13)
-        //     Length: 1
-        // Field (12/27): SRC_AS
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0001 0000 = Type: SRC_AS (16)
-        //     Length: 4
-        // Field (13/27): DST_AS
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0001 0001 = Type: DST_AS (17)
-        //     Length: 4
-        // Field (14/27): IP_NEXT_HOP
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1111 = Type: IP_NEXT_HOP (15)
-        //     Length: 4
-        // Field (15/27): TCP_FLAGS
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0110 = Type: TCP_FLAGS (6)
-        //     Length: 1
-        // Field (16/27): OUTPUT_SNMP
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 1110 = Type: OUTPUT_SNMP (14)
-        //     Length: 4
-        // Field (17/27): BYTES
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0001 = Type: BYTES (1)
-        //     Length: 8
-        // Field (18/27): PKTS
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0000 0010 = Type: PKTS (2)
-        //     Length: 8
-        // Field (19/27): IP TTL MINIMUM
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0011 0100 = Type: IP TTL MINIMUM (52)
-        //     Length: 1
-        // Field (20/27): IP TTL MAXIMUM
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0011 0101 = Type: IP TTL MAXIMUM (53)
-        //     Length: 1
-        // Field (21/27): flowStartMilliseconds
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 1001 1000 = Type: flowStartMilliseconds (152)
-        //     Length: 8
-        // Field (22/27): flowEndMilliseconds
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 1001 1001 = Type: flowEndMilliseconds (153)
-        //     Length: 8
-        // Field (23/27): flowEndReason
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 1000 1000 = Type: flowEndReason (136)
-        //     Length: 1
-        // Field (24/27): DIRECTION
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0011 1101 = Type: DIRECTION (61)
-        //     Length: 1
-        // Field (25/27): dot1qVlanId
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 1111 0011 = Type: dot1qVlanId (243)
-        //     Length: 2
-        // Field (26/27): dot1qCustomerVlanId
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 1111 0101 = Type: dot1qCustomerVlanId (245)
-        //     Length: 2
-        // Field (27/27): IPv4 ID
-        //     0... .... .... .... = Pen provided: No
-        //     .000 0000 0011 0110 = Type: IPv4 ID (54)
-        //     Length: 4
+        #[cfg_attr(rustfmt, rustfmt::skip)]
+        {
+        assert_eq!(template.fields[0], TemplateField {id: FieldType::SourceIPv4Address, length: 4});
+        assert_eq!(template.fields[1], TemplateField {id:  FieldType::DestinationIPv4Address, length: 4});
+        assert_eq!(template.fields[2], TemplateField {id:  FieldType::IPClassOfService, length: 1});
+        assert_eq!(template.fields[3], TemplateField {id:  FieldType::ProtocolIdentifier, length: 1});
+        assert_eq!(template.fields[4], TemplateField {id:  FieldType::SourceTransportPort, length: 2});
+        assert_eq!(template.fields[5], TemplateField {id:  FieldType::DestinationTransportPort, length: 2});
+        assert_eq!(template.fields[6], TemplateField {id:  FieldType::IcmpTypeCodeIPv4, length: 2});
+        assert_eq!(template.fields[7], TemplateField {id:  FieldType::IngressInterface, length: 4});
+        assert_eq!(template.fields[8], TemplateField {id:  FieldType::VlanId, length: 2});
+        assert_eq!(template.fields[9], TemplateField {id:  FieldType::SourceIPv4PrefixLength, length: 1});
+        assert_eq!(template.fields[10], TemplateField {id:  FieldType::DestinationIPv4PrefixLength, length: 1});
+        assert_eq!(template.fields[11], TemplateField {id:  FieldType::BgpSourceAsNumber, length: 4});
+        assert_eq!(template.fields[12], TemplateField {id:  FieldType::BgpDestinationAsNumber, length: 4});
+        assert_eq!(template.fields[13], TemplateField {id:  FieldType::IpNextHopIPv4Address, length: 4});
+        assert_eq!(template.fields[14], TemplateField {id:  FieldType::TcpControlBits, length: 1});
+        assert_eq!(template.fields[15], TemplateField {id:  FieldType::EgressInterface, length: 4});
+        assert_eq!(template.fields[16], TemplateField {id:  FieldType::OctetDeltaCount, length: 8});
+        assert_eq!(template.fields[17], TemplateField {id:  FieldType::PacketDeltaCount, length: 8});
+        assert_eq!(template.fields[18], TemplateField {id:  FieldType::MSinimumTTL, length: 1});
+        assert_eq!(template.fields[19], TemplateField {id:  FieldType::MSaximumTTL, length: 1});
+        assert_eq!(template.fields[20], TemplateField {id:  FieldType::FlowStartMilliseconds, length: 8});
+        assert_eq!(template.fields[21], TemplateField {id:  FieldType::FlowEndMilliseconds, length: 8});
+        assert_eq!(template.fields[22], TemplateField {id:  FieldType::FlowEndReason, length: 1});
+        assert_eq!(template.fields[23], TemplateField {id:  FieldType::FlowDirection, length: 1});
+        assert_eq!(template.fields[24], TemplateField {id:  FieldType::Dot1qVlanId, length: 2});
+        assert_eq!(template.fields[25], TemplateField {id:  FieldType::Dot1qCustomerVlanId, length: 2});
+        assert_eq!(template.fields[26], TemplateField {id:  FieldType::FragmentIdentification, length: 4});
+        }
     }
 
     #[test]
