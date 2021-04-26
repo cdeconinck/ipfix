@@ -1013,7 +1013,9 @@ mod tests {
     #[test]
     #[should_panic]
     fn read_invalid_option_template() {
-        OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD[0..OPTION_TEMPLATE_PAYLOAD.len() - 1]).unwrap();
+        // remove 2 bytes of padding (not parsed by the structure) and 1 byte to trigger the error
+        let removed_bytes = 2 + 1;
+        OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD[0..OPTION_TEMPLATE_PAYLOAD.len() - removed_bytes]).unwrap();
     }
 
     #[test]
