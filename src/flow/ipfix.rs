@@ -1023,36 +1023,33 @@ mod tests {
         let msg = DataSet::read(&DATASET, &template.fields, template.length).unwrap();
 
         assert_eq!(msg.fields.len(), template.fields.len());
-        for field in &template.fields {
-            assert!(msg.fields.get(&field.id).is_some());
-        }
-
-        // SrcAddr: 195.5.237.90
-        // DstAddr: 52.113.145.222
-        // IP ToS: 0x00
-        // Protocol: UDP (17)
-        // SrcPort: 61528 (61528)
-        // DstPort: 3480 (3480)
-        // ICMP Type: 0x0000
-        // InputInt: 557
-        // Vlan Id: 0
-        // SrcMask: 30
-        // DstMask: 14
-        // SrcAS: 13193
-        // DstAS: 8075
-        // NextHop: 195.66.224.140
-        // TCP Flags: 0x00
-        // OutputInt: 556
-        // Octets: 4714
-        // Packets: 37
-        // MinTTL: 117
-        // MaxTTL: 117
-        // [Duration: 90.368000000 seconds (milliseconds)]
-        // Flow End Reason: Active timeout (2)
-        // Direction: Unknown (255)
-        // Dot1q Vlan Id: 0
-        // Dot1q Customer Vlan Id: 0
-        // fragIdent: 0
+        assert_eq!(msg.fields.get(&FieldType::SourceIPv4Address), Some(&FieldValue::U32(u32::from(Ipv4Addr::new(195, 5, 237, 90)))));
+        assert_eq!(msg.fields.get(&FieldType::DestinationIPv4Address), Some(&FieldValue::U32(u32::from(Ipv4Addr::new(52, 113, 145, 222)))));
+        assert_eq!(msg.fields.get(&FieldType::IPClassOfService), Some(&FieldValue::U8(0)));
+        assert_eq!(msg.fields.get(&FieldType::ProtocolIdentifier), Some(&FieldValue::U8(17)));
+        assert_eq!(msg.fields.get(&FieldType::SourceTransportPort), Some(&FieldValue::U16(61528)));
+        assert_eq!(msg.fields.get(&FieldType::DestinationTransportPort), Some(&FieldValue::U16(3480)));
+        assert_eq!(msg.fields.get(&FieldType::IcmpTypeCodeIPv4), Some(&FieldValue::U16(0)));
+        assert_eq!(msg.fields.get(&FieldType::IngressInterface), Some(&FieldValue::U32(557)));
+        assert_eq!(msg.fields.get(&FieldType::VlanId), Some(&FieldValue::U16(0)));
+        assert_eq!(msg.fields.get(&FieldType::SourceIPv4PrefixLength), Some(&FieldValue::U8(30)));
+        assert_eq!(msg.fields.get(&FieldType::DestinationIPv4PrefixLength), Some(&FieldValue::U8(14)));
+        assert_eq!(msg.fields.get(&FieldType::BgpSourceAsNumber), Some(&FieldValue::U32(13193)));
+        assert_eq!(msg.fields.get(&FieldType::BgpDestinationAsNumber), Some(&FieldValue::U32(8075)));
+        assert_eq!(msg.fields.get(&FieldType::IpNextHopIPv4Address), Some(&FieldValue::U32(u32::from(Ipv4Addr::new(195, 66, 224, 140)))));
+        assert_eq!(msg.fields.get(&FieldType::TcpControlBits), Some(&FieldValue::U8(0)));
+        assert_eq!(msg.fields.get(&FieldType::EgressInterface), Some(&FieldValue::U32(556)));
+        assert_eq!(msg.fields.get(&FieldType::OctetDeltaCount), Some(&FieldValue::U64(4714)));
+        assert_eq!(msg.fields.get(&FieldType::PacketDeltaCount), Some(&FieldValue::U64(37)));
+        assert_eq!(msg.fields.get(&FieldType::MSinimumTTL), Some(&FieldValue::U8(117)));
+        assert_eq!(msg.fields.get(&FieldType::MSaximumTTL), Some(&FieldValue::U8(117)));
+        assert_eq!(msg.fields.get(&FieldType::FlowStartMilliseconds), Some(&FieldValue::U64(1617712433408)));
+        assert_eq!(msg.fields.get(&FieldType::FlowEndMilliseconds), Some(&FieldValue::U64(1617712523776)));
+        assert_eq!(msg.fields.get(&FieldType::FlowEndReason), Some(&FieldValue::U8(2)));
+        assert_eq!(msg.fields.get(&FieldType::FlowDirection), Some(&FieldValue::U8(255)));
+        assert_eq!(msg.fields.get(&FieldType::Dot1qVlanId), Some(&FieldValue::U16(0)));
+        assert_eq!(msg.fields.get(&FieldType::Dot1qCustomerVlanId), Some(&FieldValue::U16(0)));
+        assert_eq!(msg.fields.get(&FieldType::FragmentIdentification), Some(&FieldValue::U32(0)));
     }
 
     #[test]
