@@ -881,11 +881,11 @@ mod tests {
          00 3d 00 01 00 f3 00 02 00 f5 00 02 00 36 00 04"
     );
 
-    const OPTION_TEMPLATE_PAYLOAD: [u8; 52] = hex!(
+    const OPTION_TEMPLATE_PAYLOAD: [u8; 50] = hex!(
         "02 00 00 0b 00 01 00 90 00 04 00 29 00 08 00 2a 
          00 08 00 a0 00 08 00 82 00 04 00 83 00 10 00 22 
          00 04 00 24 00 02 00 25 00 02 00 d6 00 01 00 d7 
-         00 01 00 00"
+         00 01"
     );
 
     const DATASET: [u8; 85] = hex!(
@@ -897,11 +897,11 @@ mod tests {
          00 00 00 00 00"
     );
 
-    const OPTION_DATASET: [u8; 60] = hex!(
+    const OPTION_DATASET: [u8; 58] = hex!(
         "00 00 00 02 00 00 00 09 31 c3 26 c6 00 00 00 26
          5b 7e cc 9b 00 00 01 4a a2 d7 85 28 b2 84 10 20
          00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-         00 00 00 0a 00 0a 00 0a 0a 11 00 00"
+         00 00 00 0a 00 0a 00 0a 0a 11"
     );
 
     #[test]
@@ -990,7 +990,7 @@ mod tests {
         assert_eq!(template.header.field_count, 11);
         assert_eq!(template.header.scope_field_count, 1);
         assert_eq!(template.length, 58);
-        assert_eq!(size_read, OPTION_TEMPLATE_PAYLOAD.len() - 2); // remove 2 bytes of padding
+        assert_eq!(size_read, OPTION_TEMPLATE_PAYLOAD.len());
         assert_eq!(template.fields.len(), template.header.field_count as usize);
 
         #[cfg_attr(rustfmt, rustfmt::skip)]
@@ -1012,9 +1012,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn read_invalid_option_template() {
-        // remove 2 bytes of padding (not parsed by the structure) and 1 byte to trigger the error
-        let removed_bytes = 2 + 1;
-        OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD[0..OPTION_TEMPLATE_PAYLOAD.len() - removed_bytes]).unwrap();
+        OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD[0..OPTION_TEMPLATE_PAYLOAD.len() - 1]).unwrap();
     }
 
     #[test]
