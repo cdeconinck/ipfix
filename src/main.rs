@@ -22,7 +22,7 @@ struct Opts {
     log_level: LevelFilter,
 
     /// IP:port for the UDP listener
-    #[structopt(short = "-l", long = "--listener", default_value = "0.0.0.0:9999")]
+    #[structopt(short = "-l", long = "--listener", default_value = "127.0.0.1:4739")]
     listener: SocketAddr,
 
     /// IP:port for the prometheus exporter
