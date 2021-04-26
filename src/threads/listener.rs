@@ -115,27 +115,27 @@ fn parse_ipfix_msg(from: IpAddr, buf: &[u8], buf_len: usize, exporter_list: &mut
 
         if set.id == DataSetTemplate::SET_ID {
             while (offset + padding) < end_of_set {
-                let template = DataSetTemplate::read(&buf[offset..])?;
+                let (template, size_read) = DataSetTemplate::read(&buf[offset..])?;
                 let exporter_key = Exporter {
                     addr: from,
                     domain_id: header.domain_id,
                 };
 
                 info!("Template received from {:?}\n{}", exporter_key, template);
-                offset += template.offset;
+                offset += size_read;
 
                 exporter_list.entry(exporter_key).or_default().template.insert(template.header.id, Template::IpfixDataSet(template));
             }
         } else if set.id == OptionDataSetTemplate::SET_ID {
             while (offset + padding) < end_of_set {
-                let option_template = OptionDataSetTemplate::read(&buf[offset..])?;
+                let (option_template, size_read) = OptionDataSetTemplate::read(&buf[offset..])?;
                 let exporter_key = Exporter {
                     addr: from,
                     domain_id: header.domain_id,
                 };
 
                 info!("Option template received from {:?}\n{}", exporter_key, option_template);
-                offset += option_template.offset;
+                offset += size_read;
 
                 exporter_list
                     .entry(exporter_key)

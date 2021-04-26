@@ -273,13 +273,12 @@ pub struct DataSetTemplate {
     pub header: TemplateHeader,
     pub fields: Vec<TemplateField>,
     pub length: usize,
-    pub offset: usize,
 }
 
 impl DataSetTemplate {
     pub const SET_ID: u16 = 2;
 
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    pub fn read(buf: &[u8]) -> Result<(Self, usize), String> {
         let header = TemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
         let mut offset = TemplateHeader::SIZE;
@@ -292,14 +291,14 @@ impl DataSetTemplate {
             offset += TemplateField::SIZE;
         }
 
-        Ok(DataSetTemplate { header, fields, length, offset })
+        Ok((DataSetTemplate { header, fields, length }, offset))
     }
 }
 
 impl fmt::Display for DataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
-        write!(f, "length: {}, offset: {} ", &self.length, self.offset)?;
+        write!(f, "length: {} ", &self.length)?;
 
         for field in &self.fields {
             write!(f, "\n{:?}", field)?;
@@ -315,13 +314,12 @@ pub struct OptionDataSetTemplate {
     pub header: OptionTemplateHeader,
     pub fields: Vec<TemplateField>,
     pub length: usize,
-    pub offset: usize,
 }
 
 impl OptionDataSetTemplate {
     pub const SET_ID: u16 = 3;
 
-    pub fn read(buf: &[u8]) -> Result<Self, String> {
+    pub fn read(buf: &[u8]) -> Result<(Self, usize), String> {
         let header = OptionTemplateHeader::read(&buf)?;
         let mut fields: Vec<TemplateField> = vec![];
         let mut offset = OptionTemplateHeader::SIZE;
@@ -334,14 +332,14 @@ impl OptionDataSetTemplate {
             offset += TemplateField::SIZE;
         }
 
-        Ok(OptionDataSetTemplate { header, fields, length, offset })
+        Ok((OptionDataSetTemplate { header, fields, length }, offset))
     }
 }
 
 impl fmt::Display for OptionDataSetTemplate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", &self.header)?;
-        write!(f, "length: {}, offset: {} ", &self.length, self.offset)?;
+        write!(f, "length: {}", &self.length)?;
 
         for field in &self.fields {
             write!(f, "\n{:?}", field)?;
@@ -869,18 +867,48 @@ mod tests {
     use super::*;
     use hex_literal::hex;
 
-    const HEADER_PAYLOD: [u8; 0] = hex!("");
-    const TEMPLATE_PAYLOAD: [u8; 0] = hex!("");
-    const OPTION_TEMPLATE_PAYLOAD: [u8; 0] = hex!("");
-    const DATASET: [u8; 0] = hex!("");
-    const OPTION_DATASET: [u8; 0] = hex!("");
+    const HEADER_PAYLOD: [u8; Header::SIZE] = hex!("00 0a 00 84 60 6c 55 89 df b2 ba d2 00 08 00 00");
+    const TEMPLATE_PAYLOAD: [u8; 112] = hex!(
+        "01 00 00 1b 00 08 00 04 00 0c 00 04 00 05 00 01
+         00 04 00 01 00 07 00 02 00 0b 00 02 00 20 00 02
+         00 0a 00 04 00 3a 00 02 00 09 00 01 00 0d 00 01
+         00 10 00 04 00 11 00 04 00 0f 00 04 00 06 00 01
+         00 0e 00 04 00 01 00 08 00 02 00 08 00 34 00 01
+         00 35 00 01 00 98 00 08 00 99 00 08 00 88 00 01
+         00 3d 00 01 00 f3 00 02 00 f5 00 02 00 36 00 04"
+    );
+    const OPTION_TEMPLATE_PAYLOAD: [u8; 52] = hex!(
+        "02 00 00 0b 00 01 00 90 00 04 00 29 00 08 00 2a 
+         00 08 00 a0 00 08 00 82 00 04 00 83 00 10 00 22 
+         00 04 00 24 00 02 00 25 00 02 00 d6 00 01 00 d7 
+         00 01 00 00"
+    );
+    const DATASET: [u8; 85] = hex!(
+        "c3 05 ed 5a 34 71 91 de 00 11 f0 58 0d 98 00 00
+         00 00 02 2d 00 00 1e 0e 00 00 33 89 00 00 1f 8b
+         c3 42 e0 8c 00 00 00 02 2c 00 00 00 00 00 00 12
+         6a 00 00 00 00 00 00 00 25 75 75 00 00 01 78 a7
+         2c c9 00 00 00 01 78 a7 2e 2a 00 02 ff 00 00 00
+         00 00 00 00 00"
+    );
+
+    const OPTION_DATASET: [u8; 80] = hex!(
+        "00 0a 00 50 60 6c 55 a9 00 01 eb 6a 00 08 00 00
+         02 00 00 40 00 00 00 02 00 00 00 09 31 c3 26 c6
+         00 00 00 26 5b 7e cc 9b 00 00 01 4a a2 d7 85 28
+         b2 84 10 20 00 00 00 00 00 00 00 00 00 00 00 00
+         00 00 00 00 00 00 00 0a 00 0a 00 0a 0a 11 00 00"
+    );
 
     #[test]
     fn read_msg_header() {
         let header = Header::read(&HEADER_PAYLOD).unwrap();
 
         assert_eq!(header.version, VERSION);
-        assert_eq!(header.length, HEADER_PAYLOD.len() as u16);
+        assert_eq!(header.length, 132);
+        assert_eq!(header.export_time, 1617712521);
+        assert_eq!(header.seq_number, 3753032402);
+        assert_eq!(header.domain_id, 524288);
     }
 
     #[test]
@@ -891,9 +919,152 @@ mod tests {
 
     #[test]
     fn read_data_template() {
-        let msg = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        let (template, size_read) = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
 
-        assert_eq!(msg.header.id, DataSetTemplate::SET_ID);
+        assert_eq!(template.header.id, 256);
+        assert_eq!(template.header.field_count, 27);
+        assert_eq!(size_read, TEMPLATE_PAYLOAD.len());
+
+        assert_eq!(template.fields.len(), template.header.field_count as usize);
+        assert_eq!(template.fields[0].id, FieldType::SourceIPv4Address);
+        assert_eq!(template.fields[1].id, FieldType::DestinationIPv4Address);
+        assert_eq!(template.fields[2].id, FieldType::IPClassOfService);
+        assert_eq!(template.fields[3].id, FieldType::ProtocolIdentifier);
+        assert_eq!(template.fields[4].id, FieldType::SourceTransportPort);
+        assert_eq!(template.fields[5].id, FieldType::DestinationTransportPort);
+        assert_eq!(template.fields[6].id, FieldType::IcmpTypeCodeIPv4);
+        assert_eq!(template.fields[7].id, FieldType::IngressInterface);
+        assert_eq!(template.fields[8].id, FieldType::VlanId);
+        assert_eq!(template.fields[9].id, FieldType::SourceIPv4PrefixLength);
+        assert_eq!(template.fields[10].id, FieldType::DestinationIPv4PrefixLength);
+        assert_eq!(template.fields[11].id, FieldType::BgpSourceAsNumber);
+        assert_eq!(template.fields[12].id, FieldType::BgpDestinationAsNumber);
+        assert_eq!(template.fields[13].id, FieldType::IpNextHopIPv4Address);
+        assert_eq!(template.fields[14].id, FieldType::TcpControlBits);
+        assert_eq!(template.fields[15].id, FieldType::EgressInterface);
+        assert_eq!(template.fields[16].id, FieldType::OctetDeltaCount);
+        assert_eq!(template.fields[17].id, FieldType::PacketDeltaCount);
+        assert_eq!(template.fields[18].id, FieldType::MSinimumTTL);
+        assert_eq!(template.fields[19].id, FieldType::MSaximumTTL);
+        assert_eq!(template.fields[20].id, FieldType::FlowStartMilliseconds);
+        assert_eq!(template.fields[21].id, FieldType::FlowEndMilliseconds);
+        assert_eq!(template.fields[22].id, FieldType::FlowEndReason);
+        assert_eq!(template.fields[23].id, FieldType::FlowDirection);
+        assert_eq!(template.fields[24].id, FieldType::Dot1qVlanId);
+        assert_eq!(template.fields[25].id, FieldType::Dot1qCustomerVlanId);
+        assert_eq!(template.fields[26].id, FieldType::FragmentIdentification);
+
+        // Template (Id = 256, Count = 27)
+        // Template Id: 256
+        // Field Count: 27
+        // Field (1/27): IP_SRC_ADDR
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1000 = Type: IP_SRC_ADDR (8)
+        //     Length: 4
+        // Field (2/27): IP_DST_ADDR
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1100 = Type: IP_DST_ADDR (12)
+        //     Length: 4
+        // Field (3/27): IP_TOS
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0101 = Type: IP_TOS (5)
+        //     Length: 1
+        // Field (4/27): PROTOCOL
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0100 = Type: PROTOCOL (4)
+        //     Length: 1
+        // Field (5/27): L4_SRC_PORT
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0111 = Type: L4_SRC_PORT (7)
+        //     Length: 2
+        // Field (6/27): L4_DST_PORT
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1011 = Type: L4_DST_PORT (11)
+        //     Length: 2
+        // Field (7/27): ICMP_TYPE
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0010 0000 = Type: ICMP_TYPE (32)
+        //     Length: 2
+        // Field (8/27): INPUT_SNMP
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1010 = Type: INPUT_SNMP (10)
+        //     Length: 4
+        // Field (9/27): SRC_VLAN
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0011 1010 = Type: SRC_VLAN (58)
+        //     Length: 2
+        // Field (10/27): SRC_MASK
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1001 = Type: SRC_MASK (9)
+        //     Length: 1
+        // Field (11/27): DST_MASK
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1101 = Type: DST_MASK (13)
+        //     Length: 1
+        // Field (12/27): SRC_AS
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0001 0000 = Type: SRC_AS (16)
+        //     Length: 4
+        // Field (13/27): DST_AS
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0001 0001 = Type: DST_AS (17)
+        //     Length: 4
+        // Field (14/27): IP_NEXT_HOP
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1111 = Type: IP_NEXT_HOP (15)
+        //     Length: 4
+        // Field (15/27): TCP_FLAGS
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0110 = Type: TCP_FLAGS (6)
+        //     Length: 1
+        // Field (16/27): OUTPUT_SNMP
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 1110 = Type: OUTPUT_SNMP (14)
+        //     Length: 4
+        // Field (17/27): BYTES
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0001 = Type: BYTES (1)
+        //     Length: 8
+        // Field (18/27): PKTS
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0000 0010 = Type: PKTS (2)
+        //     Length: 8
+        // Field (19/27): IP TTL MINIMUM
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0011 0100 = Type: IP TTL MINIMUM (52)
+        //     Length: 1
+        // Field (20/27): IP TTL MAXIMUM
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0011 0101 = Type: IP TTL MAXIMUM (53)
+        //     Length: 1
+        // Field (21/27): flowStartMilliseconds
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 1001 1000 = Type: flowStartMilliseconds (152)
+        //     Length: 8
+        // Field (22/27): flowEndMilliseconds
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 1001 1001 = Type: flowEndMilliseconds (153)
+        //     Length: 8
+        // Field (23/27): flowEndReason
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 1000 1000 = Type: flowEndReason (136)
+        //     Length: 1
+        // Field (24/27): DIRECTION
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0011 1101 = Type: DIRECTION (61)
+        //     Length: 1
+        // Field (25/27): dot1qVlanId
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 1111 0011 = Type: dot1qVlanId (243)
+        //     Length: 2
+        // Field (26/27): dot1qCustomerVlanId
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 1111 0101 = Type: dot1qCustomerVlanId (245)
+        //     Length: 2
+        // Field (27/27): IPv4 ID
+        //     0... .... .... .... = Pen provided: No
+        //     .000 0000 0011 0110 = Type: IPv4 ID (54)
+        //     Length: 4
     }
 
     #[test]
@@ -904,16 +1075,39 @@ mod tests {
 
     #[test]
     fn read_option_template() {
-        let msg = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
+        let (template, size_read) = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
 
-        assert_eq!(msg.header.id, OptionDataSetTemplate::SET_ID);
-        assert_eq!(msg.header.field_count, 0);
+        assert_eq!(template.header.id, 512);
+        assert_eq!(template.header.field_count, 11);
+        assert_eq!(template.header.scope_field_count, 1);
+        assert_eq!(template.length, 58);
+        assert_eq!(size_read, OPTION_TEMPLATE_PAYLOAD.len() - 2); // remove 2 bytes of padding
 
-        // check each field
-        assert!(msg.fields.contains(&TemplateField {
-            id: FieldType::OctetDeltaCount,
-            length: 4
-        }));
+        assert_eq!(template.fields.len(), template.header.field_count as usize);
+        assert_eq!(template.fields[0].id, FieldType::ExportingProcessId);
+        assert_eq!(template.fields[1].id, FieldType::ExportedMessageTotalCount);
+        assert_eq!(template.fields[2].id, FieldType::ExportedFlowRecordTotalCount);
+        assert_eq!(template.fields[3].id, FieldType::SystemInitTimeMilliseconds);
+        assert_eq!(template.fields[4].id, FieldType::ExporterIPv4Address);
+        assert_eq!(template.fields[5].id, FieldType::ExporterIPv6Address);
+        assert_eq!(template.fields[6].id, FieldType::SamplingInterval);
+        assert_eq!(template.fields[7].id, FieldType::FlowActiveTimeout);
+        assert_eq!(template.fields[8].id, FieldType::FlowIdleTimeout);
+        assert_eq!(template.fields[9].id, FieldType::ExportProtocolVersion);
+        assert_eq!(template.fields[10].id, FieldType::ExportTransportProtocol);
+
+        //OptionTemplateHeader { id: 512, field_count: 11, scope_field_count: 1 }length: 58
+        //TemplateField { id: ExportingProcessId, length: 4 }
+        //TemplateField { id: ExportedMessageTotalCount, length: 8 }
+        //TemplateField { id: ExportedFlowRecordTotalCount, length: 8 }
+        //TemplateField { id: SystemInitTimeMilliseconds, length: 8 }
+        //TemplateField { id: ExporterIPv4Address, length: 4 }
+        //TemplateField { id: ExporterIPv6Address, length: 16 }
+        //TemplateField { id: SamplingInterval, length: 4 }
+        //TemplateField { id: FlowActiveTimeout, length: 2 }
+        //TemplateField { id: FlowIdleTimeout, length: 2 }
+        //TemplateField { id: ExportProtocolVersion, length: 1 }
+        //TemplateField { id: ExportTransportProtocol, length: 1 }
     }
 
     #[test]
@@ -924,35 +1118,76 @@ mod tests {
 
     #[test]
     fn readd_dataset() {
-        let template = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        let (template, _) = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
         let msg = DataSet::read(&DATASET, &template.fields, template.length).unwrap();
 
+        assert_eq!(msg.fields.len(), template.fields.len());
         for field in &template.fields {
             assert!(msg.fields.get(&field.id).is_some());
         }
+
+        // SrcAddr: 195.5.237.90
+        // DstAddr: 52.113.145.222
+        // IP ToS: 0x00
+        // Protocol: UDP (17)
+        // SrcPort: 61528 (61528)
+        // DstPort: 3480 (3480)
+        // ICMP Type: 0x0000
+        // InputInt: 557
+        // Vlan Id: 0
+        // SrcMask: 30
+        // DstMask: 14
+        // SrcAS: 13193
+        // DstAS: 8075
+        // NextHop: 195.66.224.140
+        // TCP Flags: 0x00
+        // OutputInt: 556
+        // Octets: 4714
+        // Packets: 37
+        // MinTTL: 117
+        // MaxTTL: 117
+        // [Duration: 90.368000000 seconds (milliseconds)]
+        // Flow End Reason: Active timeout (2)
+        // Direction: Unknown (255)
+        // Dot1q Vlan Id: 0
+        // Dot1q Customer Vlan Id: 0
+        // fragIdent: 0
     }
 
     #[test]
     #[should_panic]
     fn read_invalid_dataset() {
-        let template = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        let (template, _) = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
         DataSet::read(&DATASET[0..DATASET.len() - 1], &template.fields, template.length).unwrap();
     }
 
     #[test]
     fn read_option_dataset() {
-        let template = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
+        let (template, _) = OptionDataSetTemplate::read(&OPTION_TEMPLATE_PAYLOAD).unwrap();
         let msg = DataSet::read(&OPTION_DATASET, &template.fields, template.length).unwrap();
 
+        assert_eq!(msg.fields.len(), template.fields.len());
         for field in &template.fields {
             assert!(msg.fields.get(&field.id).is_some());
         }
+
+        // ExportedMessageTotalCount: 39489578694,
+        // SamplingInterval: 10,
+        // ExportProtocolVersion: 10,
+        // ExportingProcessId: 2,
+        // SystemInitTimeMilliseconds: 1420071241000,
+        // ExporterIPv6Address: ::,
+        // FlowIdleTimeout: 10,
+        // ExporterIPv4Address: 178.132.16.32,
+        // ExportTransportProtocol: 17,
+        // FlowActiveTimeout: 10,
+        // ExportedFlowRecordTotalCount: 164743793819,
     }
 
     #[test]
     #[should_panic]
     fn read_invalid_option_dataset() {
-        let template = OptionDataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
+        let (template, _) = OptionDataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
         DataSet::read(&OPTION_DATASET[0..OPTION_DATASET.len() - 1], &template.fields, template.length).unwrap();
     }
 }
