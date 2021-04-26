@@ -868,6 +868,9 @@ mod tests {
     use hex_literal::hex;
 
     const HEADER_PAYLOD: [u8; Header::SIZE] = hex!("00 0a 00 84 60 6c 55 89 df b2 ba d2 00 08 00 00");
+
+    const SET_HEADER_PAYLOAD: [u8; SetHeader::SIZE] = hex!("00 02 00 74");
+
     const TEMPLATE_PAYLOAD: [u8; 112] = hex!(
         "01 00 00 1b 00 08 00 04 00 0c 00 04 00 05 00 01
          00 04 00 01 00 07 00 02 00 0b 00 02 00 20 00 02
@@ -877,12 +880,14 @@ mod tests {
          00 35 00 01 00 98 00 08 00 99 00 08 00 88 00 01
          00 3d 00 01 00 f3 00 02 00 f5 00 02 00 36 00 04"
     );
+
     const OPTION_TEMPLATE_PAYLOAD: [u8; 52] = hex!(
         "02 00 00 0b 00 01 00 90 00 04 00 29 00 08 00 2a 
          00 08 00 a0 00 08 00 82 00 04 00 83 00 10 00 22 
          00 04 00 24 00 02 00 25 00 02 00 d6 00 01 00 d7 
          00 01 00 00"
     );
+
     const DATASET: [u8; 85] = hex!(
         "c3 05 ed 5a 34 71 91 de 00 11 f0 58 0d 98 00 00
          00 00 02 2d 00 00 1e 0e 00 00 33 89 00 00 1f 8b
@@ -914,7 +919,21 @@ mod tests {
     #[test]
     #[should_panic]
     fn read_invalid_msg_header() {
-        Header::read(&HEADER_PAYLOD[0..Header::SIZE - 1]).unwrap();
+        Header::read(&HEADER_PAYLOD[0..HEADER_PAYLOD.len() - 1]).unwrap();
+    }
+
+    #[test]
+    fn read_set_header() {
+        let set = SetHeader::read(&SET_HEADER_PAYLOAD).unwrap();
+
+        assert_eq!(set.id, 2);
+        assert_eq!(set.length, 116);
+    }
+
+    #[test]
+    #[should_panic]
+    fn read_invalid_set_header() {
+        SetHeader::read(&SET_HEADER_PAYLOAD[0..SET_HEADER_PAYLOAD.len() - 1]).unwrap();
     }
 
     #[test]
