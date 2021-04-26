@@ -948,32 +948,32 @@ mod tests {
         #[cfg_attr(rustfmt, rustfmt::skip)]
         {
         assert_eq!(template.fields[0], TemplateField {id: FieldType::SourceIPv4Address, length: 4});
-        assert_eq!(template.fields[1], TemplateField {id:  FieldType::DestinationIPv4Address, length: 4});
-        assert_eq!(template.fields[2], TemplateField {id:  FieldType::IPClassOfService, length: 1});
-        assert_eq!(template.fields[3], TemplateField {id:  FieldType::ProtocolIdentifier, length: 1});
-        assert_eq!(template.fields[4], TemplateField {id:  FieldType::SourceTransportPort, length: 2});
-        assert_eq!(template.fields[5], TemplateField {id:  FieldType::DestinationTransportPort, length: 2});
-        assert_eq!(template.fields[6], TemplateField {id:  FieldType::IcmpTypeCodeIPv4, length: 2});
-        assert_eq!(template.fields[7], TemplateField {id:  FieldType::IngressInterface, length: 4});
-        assert_eq!(template.fields[8], TemplateField {id:  FieldType::VlanId, length: 2});
-        assert_eq!(template.fields[9], TemplateField {id:  FieldType::SourceIPv4PrefixLength, length: 1});
-        assert_eq!(template.fields[10], TemplateField {id:  FieldType::DestinationIPv4PrefixLength, length: 1});
-        assert_eq!(template.fields[11], TemplateField {id:  FieldType::BgpSourceAsNumber, length: 4});
-        assert_eq!(template.fields[12], TemplateField {id:  FieldType::BgpDestinationAsNumber, length: 4});
-        assert_eq!(template.fields[13], TemplateField {id:  FieldType::IpNextHopIPv4Address, length: 4});
-        assert_eq!(template.fields[14], TemplateField {id:  FieldType::TcpControlBits, length: 1});
-        assert_eq!(template.fields[15], TemplateField {id:  FieldType::EgressInterface, length: 4});
-        assert_eq!(template.fields[16], TemplateField {id:  FieldType::OctetDeltaCount, length: 8});
-        assert_eq!(template.fields[17], TemplateField {id:  FieldType::PacketDeltaCount, length: 8});
-        assert_eq!(template.fields[18], TemplateField {id:  FieldType::MSinimumTTL, length: 1});
-        assert_eq!(template.fields[19], TemplateField {id:  FieldType::MSaximumTTL, length: 1});
-        assert_eq!(template.fields[20], TemplateField {id:  FieldType::FlowStartMilliseconds, length: 8});
-        assert_eq!(template.fields[21], TemplateField {id:  FieldType::FlowEndMilliseconds, length: 8});
-        assert_eq!(template.fields[22], TemplateField {id:  FieldType::FlowEndReason, length: 1});
-        assert_eq!(template.fields[23], TemplateField {id:  FieldType::FlowDirection, length: 1});
-        assert_eq!(template.fields[24], TemplateField {id:  FieldType::Dot1qVlanId, length: 2});
-        assert_eq!(template.fields[25], TemplateField {id:  FieldType::Dot1qCustomerVlanId, length: 2});
-        assert_eq!(template.fields[26], TemplateField {id:  FieldType::FragmentIdentification, length: 4});
+        assert_eq!(template.fields[1], TemplateField {id: FieldType::DestinationIPv4Address, length: 4});
+        assert_eq!(template.fields[2], TemplateField {id: FieldType::IPClassOfService, length: 1});
+        assert_eq!(template.fields[3], TemplateField {id: FieldType::ProtocolIdentifier, length: 1});
+        assert_eq!(template.fields[4], TemplateField {id: FieldType::SourceTransportPort, length: 2});
+        assert_eq!(template.fields[5], TemplateField {id: FieldType::DestinationTransportPort, length: 2});
+        assert_eq!(template.fields[6], TemplateField {id: FieldType::IcmpTypeCodeIPv4, length: 2});
+        assert_eq!(template.fields[7], TemplateField {id: FieldType::IngressInterface, length: 4});
+        assert_eq!(template.fields[8], TemplateField {id: FieldType::VlanId, length: 2});
+        assert_eq!(template.fields[9], TemplateField {id: FieldType::SourceIPv4PrefixLength, length: 1});
+        assert_eq!(template.fields[10], TemplateField {id: FieldType::DestinationIPv4PrefixLength, length: 1});
+        assert_eq!(template.fields[11], TemplateField {id: FieldType::BgpSourceAsNumber, length: 4});
+        assert_eq!(template.fields[12], TemplateField {id: FieldType::BgpDestinationAsNumber, length: 4});
+        assert_eq!(template.fields[13], TemplateField {id: FieldType::IpNextHopIPv4Address, length: 4});
+        assert_eq!(template.fields[14], TemplateField {id: FieldType::TcpControlBits, length: 1});
+        assert_eq!(template.fields[15], TemplateField {id: FieldType::EgressInterface, length: 4});
+        assert_eq!(template.fields[16], TemplateField {id: FieldType::OctetDeltaCount, length: 8});
+        assert_eq!(template.fields[17], TemplateField {id: FieldType::PacketDeltaCount, length: 8});
+        assert_eq!(template.fields[18], TemplateField {id: FieldType::MSinimumTTL, length: 1});
+        assert_eq!(template.fields[19], TemplateField {id: FieldType::MSaximumTTL, length: 1});
+        assert_eq!(template.fields[20], TemplateField {id: FieldType::FlowStartMilliseconds, length: 8});
+        assert_eq!(template.fields[21], TemplateField {id: FieldType::FlowEndMilliseconds, length: 8});
+        assert_eq!(template.fields[22], TemplateField {id: FieldType::FlowEndReason, length: 1});
+        assert_eq!(template.fields[23], TemplateField {id: FieldType::FlowDirection, length: 1});
+        assert_eq!(template.fields[24], TemplateField {id: FieldType::Dot1qVlanId, length: 2});
+        assert_eq!(template.fields[25], TemplateField {id: FieldType::Dot1qCustomerVlanId, length: 2});
+        assert_eq!(template.fields[26], TemplateField {id: FieldType::FragmentIdentification, length: 4});
         }
     }
 
@@ -996,17 +996,17 @@ mod tests {
 
         #[cfg_attr(rustfmt, rustfmt::skip)]
         {
-        assert_eq!(template.fields[0], TemplateField { id: FieldType::ExportingProcessId, length: 4 });
-        assert_eq!(template.fields[1], TemplateField { id: FieldType::ExportedMessageTotalCount, length: 8 });
-        assert_eq!(template.fields[2], TemplateField { id: FieldType::ExportedFlowRecordTotalCount, length: 8 });
-        assert_eq!(template.fields[3], TemplateField { id: FieldType::SystemInitTimeMilliseconds, length: 8 });
-        assert_eq!(template.fields[4], TemplateField { id: FieldType::ExporterIPv4Address, length: 4 });
-        assert_eq!(template.fields[5], TemplateField { id: FieldType::ExporterIPv6Address, length: 16 });
-        assert_eq!(template.fields[6], TemplateField { id: FieldType::SamplingInterval, length: 4 });
-        assert_eq!(template.fields[7], TemplateField { id: FieldType::FlowActiveTimeout, length: 2 });
-        assert_eq!(template.fields[8], TemplateField { id: FieldType::FlowIdleTimeout, length: 2 });
-        assert_eq!(template.fields[9], TemplateField { id: FieldType::ExportProtocolVersion, length: 1 });
-        assert_eq!(template.fields[10], TemplateField { id: FieldType::ExportTransportProtocol, length: 1 });   
+        assert_eq!(template.fields[0], TemplateField {id: FieldType::ExportingProcessId, length: 4});
+        assert_eq!(template.fields[1], TemplateField {id: FieldType::ExportedMessageTotalCount, length: 8});
+        assert_eq!(template.fields[2], TemplateField {id: FieldType::ExportedFlowRecordTotalCount, length: 8});
+        assert_eq!(template.fields[3], TemplateField {id: FieldType::SystemInitTimeMilliseconds, length: 8});
+        assert_eq!(template.fields[4], TemplateField {id: FieldType::ExporterIPv4Address, length: 4});
+        assert_eq!(template.fields[5], TemplateField {id: FieldType::ExporterIPv6Address, length: 16});
+        assert_eq!(template.fields[6], TemplateField {id: FieldType::SamplingInterval, length: 4});
+        assert_eq!(template.fields[7], TemplateField {id: FieldType::FlowActiveTimeout, length: 2});
+        assert_eq!(template.fields[8], TemplateField {id: FieldType::FlowIdleTimeout, length: 2});
+        assert_eq!(template.fields[9], TemplateField {id: FieldType::ExportProtocolVersion, length: 1});
+        assert_eq!(template.fields[10], TemplateField {id: FieldType::ExportTransportProtocol, length: 1});   
         }
     }
 
