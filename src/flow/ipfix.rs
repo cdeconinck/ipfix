@@ -992,32 +992,22 @@ mod tests {
         assert_eq!(template.header.scope_field_count, 1);
         assert_eq!(template.length, 58);
         assert_eq!(size_read, OPTION_TEMPLATE_PAYLOAD.len() - 2); // remove 2 bytes of padding
-
         assert_eq!(template.fields.len(), template.header.field_count as usize);
-        assert_eq!(template.fields[0].id, FieldType::ExportingProcessId);
-        assert_eq!(template.fields[1].id, FieldType::ExportedMessageTotalCount);
-        assert_eq!(template.fields[2].id, FieldType::ExportedFlowRecordTotalCount);
-        assert_eq!(template.fields[3].id, FieldType::SystemInitTimeMilliseconds);
-        assert_eq!(template.fields[4].id, FieldType::ExporterIPv4Address);
-        assert_eq!(template.fields[5].id, FieldType::ExporterIPv6Address);
-        assert_eq!(template.fields[6].id, FieldType::SamplingInterval);
-        assert_eq!(template.fields[7].id, FieldType::FlowActiveTimeout);
-        assert_eq!(template.fields[8].id, FieldType::FlowIdleTimeout);
-        assert_eq!(template.fields[9].id, FieldType::ExportProtocolVersion);
-        assert_eq!(template.fields[10].id, FieldType::ExportTransportProtocol);
 
-        //OptionTemplateHeader { id: 512, field_count: 11, scope_field_count: 1 }length: 58
-        //TemplateField { id: ExportingProcessId, length: 4 }
-        //TemplateField { id: ExportedMessageTotalCount, length: 8 }
-        //TemplateField { id: ExportedFlowRecordTotalCount, length: 8 }
-        //TemplateField { id: SystemInitTimeMilliseconds, length: 8 }
-        //TemplateField { id: ExporterIPv4Address, length: 4 }
-        //TemplateField { id: ExporterIPv6Address, length: 16 }
-        //TemplateField { id: SamplingInterval, length: 4 }
-        //TemplateField { id: FlowActiveTimeout, length: 2 }
-        //TemplateField { id: FlowIdleTimeout, length: 2 }
-        //TemplateField { id: ExportProtocolVersion, length: 1 }
-        //TemplateField { id: ExportTransportProtocol, length: 1 }
+        #[cfg_attr(rustfmt, rustfmt::skip)]
+        {
+        assert_eq!(template.fields[0], TemplateField { id: FieldType::ExportingProcessId, length: 4 });
+        assert_eq!(template.fields[1], TemplateField { id: FieldType::ExportedMessageTotalCount, length: 8 });
+        assert_eq!(template.fields[2], TemplateField { id: FieldType::ExportedFlowRecordTotalCount, length: 8 });
+        assert_eq!(template.fields[3], TemplateField { id: FieldType::SystemInitTimeMilliseconds, length: 8 });
+        assert_eq!(template.fields[4], TemplateField { id: FieldType::ExporterIPv4Address, length: 4 });
+        assert_eq!(template.fields[5], TemplateField { id: FieldType::ExporterIPv6Address, length: 16 });
+        assert_eq!(template.fields[6], TemplateField { id: FieldType::SamplingInterval, length: 4 });
+        assert_eq!(template.fields[7], TemplateField { id: FieldType::FlowActiveTimeout, length: 2 });
+        assert_eq!(template.fields[8], TemplateField { id: FieldType::FlowIdleTimeout, length: 2 });
+        assert_eq!(template.fields[9], TemplateField { id: FieldType::ExportProtocolVersion, length: 1 });
+        assert_eq!(template.fields[10], TemplateField { id: FieldType::ExportTransportProtocol, length: 1 });   
+        }
     }
 
     #[test]
