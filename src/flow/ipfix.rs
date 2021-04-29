@@ -866,7 +866,7 @@ mod tests {
     );
 
     #[test]
-    fn read_msg_header() {
+    fn read_header() {
         let header = Header::read(&HEADER_PAYLOD).unwrap();
 
         assert_eq!(header.version, VERSION);
@@ -878,7 +878,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn read_invalid_msg_header() {
+    fn read_invalid_header() {
         Header::read(&HEADER_PAYLOD[0..HEADER_PAYLOD.len() - 1]).unwrap();
     }
 
@@ -897,7 +897,7 @@ mod tests {
     }
 
     #[test]
-    fn read_data_template() {
+    fn read_template() {
         let (template, size_read) = DataSetTemplate::read(&TEMPLATE_PAYLOAD).unwrap();
 
         assert_eq!(template.header.id, 256);
@@ -939,7 +939,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn read_invalid_data_template() {
+    fn read_invalid_template() {
         DataSetTemplate::read(&TEMPLATE_PAYLOAD[0..TEMPLATE_PAYLOAD.len() - 1]).unwrap();
     }
 

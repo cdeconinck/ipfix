@@ -215,7 +215,7 @@ mod tests {
     );
 
     #[test]
-    fn read_msg_header() {
+    fn read_header() {
         let header = Header::read(&HEADER_PAYLOD).unwrap();
 
         assert_eq!(header.version, VERSION);
@@ -232,12 +232,12 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn read_invalid_msg_header() {
+    fn read_invalid_header() {
         Header::read(&HEADER_PAYLOD[0..Header::SIZE - 1]).unwrap();
     }
 
     #[test]
-    fn read_data_msg() {
+    fn read_dataset() {
         let msg = DataSet::read(&DATA_SET_PAYLOD).unwrap();
 
         assert_eq!(msg.src_addr, u32::from(Ipv4Addr::new(112, 10, 20, 10)));

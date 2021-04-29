@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn read_template_ipfix_msg() {
+    fn read_ipfix_template() {
         let mut exporter_list: ExporterList = HashMap::new();
         let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
@@ -272,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn read_option_template_ipfix_msg() {
+    fn read_ipfix_option_template() {
         let mut exporter_list: ExporterList = HashMap::new();
         let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
@@ -283,7 +283,21 @@ mod tests {
     }
 
     #[test]
-    fn read_data_ipfix_without_template_msg() {
+    fn read_ipfix_dataset() {
+        let mut exporter_list: ExporterList = HashMap::new();
+        let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+
+        // read and store the template for the dataset first
+        parse_ipfix_msg(from, &TEMPLATE_IPFIX_MSG, &mut exporter_list).unwrap();
+        assert_eq!(exporter_list.len(), 1);
+
+        // then read the data set with the template
+        let data_list = parse_ipfix_msg(from, &DATA_SET_IPFIX_MSG, &mut exporter_list).unwrap();
+        assert_eq!(data_list.len(), 2);
+    }
+
+    #[test]
+    fn read_ipfix_dataset_without_template() {
         let mut exporter_list: ExporterList = HashMap::new();
         let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
@@ -295,20 +309,7 @@ mod tests {
     }
 
     #[test]
-    fn read_data_ipfix_with_template_msg() {
-        let mut exporter_list: ExporterList = HashMap::new();
-        let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-
-        // read and store the template for the dataset first
-        parse_ipfix_msg(from, &TEMPLATE_IPFIX_MSG, &mut exporter_list).unwrap();
-
-        // then read the data set with the template
-        let data_list = parse_ipfix_msg(from, &DATA_SET_IPFIX_MSG, &mut exporter_list).unwrap();
-        assert_eq!(data_list.len(), 2);
-    }
-
-    #[test]
-    fn read_data_ipfix_with_template_from_difference_source_msg() {
+    fn read_ipfix_dataset_with_template_from_difference_source() {
         let mut exporter_list: ExporterList = HashMap::new();
         let from_template = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
@@ -323,7 +324,24 @@ mod tests {
     }
 
     #[test]
-    fn read_option_data_ipfix_without_template_msg() {
+    fn read_ipfix_option_dataset() {
+        let mut exporter_list: ExporterList = HashMap::new();
+        let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+
+        // read and store the option template for the dataset first
+        parse_ipfix_msg(from, &OPTION_TEMPLATE_IPFIX_MSG, &mut exporter_list).unwrap();
+        assert_eq!(exporter_list.len(), 1);
+
+        // then read the data set with the template
+        let data_list = parse_ipfix_msg(from, &OPTION_DATA_SET_IPFIX_MSG, &mut exporter_list).unwrap();
+
+        // no result expected because the function just print the data parsed
+        // TODO capture the output of the function and check if it contains the parsed data ?
+        assert_eq!(data_list.len(), 0);
+    }
+
+    #[test]
+    fn read_ipfix_option_dataset_without_template() {
         let mut exporter_list: ExporterList = HashMap::new();
         let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 
@@ -331,23 +349,6 @@ mod tests {
 
         // no change expected
         assert_eq!(exporter_list.len(), 0);
-        assert_eq!(data_list.len(), 0);
-    }
-
-    #[test]
-    fn read_option_data_ipfix_with_template_msg() {
-        let mut exporter_list: ExporterList = HashMap::new();
-        let from = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
-
-        // read and store the option template for the dataset first
-        parse_ipfix_msg(from, &OPTION_TEMPLATE_IPFIX_MSG, &mut exporter_list).unwrap();
-
-        // then read the data set with the template
-        let data_list = parse_ipfix_msg(from, &OPTION_DATA_SET_IPFIX_MSG, &mut exporter_list).unwrap();
-        assert_eq!(exporter_list.len(), 1);
-
-        // no result expected beacuase the function just print the data parsed
-        // TODO capture the output of the function and check if it contains the parsed data ?
         assert_eq!(data_list.len(), 0);
     }
 }
