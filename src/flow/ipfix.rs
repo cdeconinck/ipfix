@@ -4,34 +4,25 @@ use std::collections::HashMap;
 use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use crate::flow::Flow;
+use super::*;
 
+// from https://tools.ietf.org/html/rfc7011
 pub const VERSION: u16 = 10;
 
 /******************************** MSG HEADER ********************************/
 
-/// from https://tools.ietf.org/html/rfc7011
-/// ```
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |       Version Number          |            Length             |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |                           Export Time                         |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |                       Sequence Number                         |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |                    Observation Domain ID                      |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// ```
-
 #[derive(Debug)]
 pub struct Header {
-    pub version: u16,     // Version of IPFIX to which this Message conforms
-    pub length: u16,      // Total length of the IPFIX Message, measured in octets, including Message Header and Set(s).
-    pub export_time: u32, // Time at which the IPFIX Message Header leaves the Exporter expressed in seconds since the UNIX epoch
-    pub seq_number: u32,  // Incremental sequence counter modulo 2^32 of all IPFIX Data Record sent in the current stream from the current Observation Domain by the Exporting Process.
-    pub domain_id: u32,   // Identifier used to uniquely identify to the Collecting Process the Observation Domain that metered the Flows
+    /// Version of IPFIX to which this Message conforms
+    pub version: u16,
+    /// Total length of the IPFIX Message, measured in octets, including Message Header and Set(s).
+    pub length: u16,
+    /// Time at which the IPFIX Message Header leaves the Exporter expressed in seconds since the UNIX epoch
+    pub export_time: u32,
+    /// Incremental sequence counter modulo 2^32 of all IPFIX Data Record sent in the current stream from the current Observation Domain by the Exporting Process.
+    pub seq_number: u32,
+    /// Identifier used to uniquely identify to the Collecting Process the Observation Domain that metered the Flows
+    pub domain_id: u32,
 }
 
 impl Header {
@@ -54,19 +45,12 @@ impl Header {
 
 /******************************** SET HEADER ********************************/
 
-/// from https://tools.ietf.org/html/rfc7011
-/// ```
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |          Set ID               |          Length               |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// ```
-
 #[derive(Debug)]
 pub struct SetHeader {
-    pub id: u16,     // Identifies the Set.
-    pub length: u16, // Total length of the Set, in octets, including the Set Header, all records, and the optional padding
+    /// Identifies the Set
+    pub id: u16,
+    /// Total length of the Set, in octets, including the Set Header, all records, and the optional padding
+    pub length: u16,
 }
 
 impl SetHeader {
@@ -91,19 +75,12 @@ impl SetHeader {
 
 /******************************** TEMPLATE HEADER ********************************/
 
-/// from https://tools.ietf.org/html/rfc7011
-/// ```
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |      Template ID (> 255)      |         Field Count           |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// ```
-
 #[derive(Debug)]
 pub struct TemplateHeader {
-    pub id: u16,          // Each Template Record is given a unique Template ID in the range 256 to 65535
-    pub field_count: u16, // Number of fields in this Template Record.
+    /// Each Template Record is given a unique Template ID in the range 256 to 65535
+    pub id: u16,
+    /// Number of fields in this Template Record.      
+    pub field_count: u16,
 }
 
 impl TemplateHeader {
@@ -123,19 +100,12 @@ impl TemplateHeader {
 
 /********************************  TEMPLATE RECORD FIELD ********************************/
 
-/// from https://tools.ietf.org/html/rfc7011
-/// ```
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |          Field id             |         Field Length          |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// ```
-
 #[derive(Debug, PartialEq)]
 pub struct TemplateField {
-    pub id: FieldType, // A numeric value that represents the Information Element
-    pub length: u16,   // The length of the corresponding encoded Information Element, in octets
+    /// A numeric value that represents the Information Element
+    pub id: FieldType,
+    /// The length of the corresponding encoded Information Element, in octets
+    pub length: u16,
 }
 
 impl TemplateField {
@@ -229,22 +199,14 @@ impl fmt::Display for DataSet {
 
 /********************************  OPTION TEMPLATE HEADER ********************************/
 
-/// from https://tools.ietf.org/html/rfc7011
-/// ```
-///  0                   1                   2                   3
-///  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |         Template ID (> 255)   |         Field Count           |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// |      Scope Field Count        |
-/// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-/// ```
-
 #[derive(Debug)]
 pub struct OptionTemplateHeader {
-    pub id: u16,                // Options Template id in the range 256 to 65535
-    pub field_count: u16,       // Number of all fields in this Options Template Record, including the Scope Fields
-    pub scope_field_count: u16, // Number of scope fields in this Options Template Record
+    /// Options Template id in the range 256 to 65535
+    pub id: u16,
+    /// Number of all fields in this Options Template Record, including the Scope Fields                
+    pub field_count: u16,
+    /// Number of scope fields in this Options Template Record   
+    pub scope_field_count: u16,
 }
 
 impl OptionTemplateHeader {
@@ -351,7 +313,7 @@ impl fmt::Display for OptionDataSetTemplate {
 
 /******************************** IPFIX FIELD TYPE ********************************/
 
-/// from http://www.iana.org/assignments/ipfix/ipfix.xml
+// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(FromPrimitive, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Copy, Clone)]
 #[repr(u16)]
 pub enum FieldType {
@@ -851,7 +813,6 @@ impl fmt::Display for FieldValue {
 
 /******************************** IPFIX END REASON ********************************/
 
-/// from http://www.iana.org/assignments/ipfix/ipfix.xml
 #[derive(FromPrimitive, PartialEq, Debug)]
 #[repr(u8)]
 pub enum EndReason {
